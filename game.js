@@ -6,23 +6,37 @@
 // ============================================================================
 
 const TILE_SIZE = 32;
-const DUNGEON_WIDTH = 40;
-const DUNGEON_HEIGHT = 30;
-const VISION_RANGE = 5;
+const WORLD_WIDTH = 120;
+const WORLD_HEIGHT = 80;
+const VISION_RANGE = 8;
 
 const TILE_TYPES = {
     VOID: 0,
-    FLOOR: 1,
-    WALL: 2,
-    DOOR: 3,
-    STAIRS_DOWN: 4,
-    STAIRS_UP: 5,
-    CHEST: 6,
-    ALTAR: 7,
+    GRASS: 1,
+    WATER: 2,
+    TREE: 3,
+    MOUNTAIN: 4,
+    SAND: 5,
+    STONE: 6,
+    TOWN: 7,
     SHOP: 8,
     SHRINE: 9,
     TREASURE: 10,
-    TRAP: 11
+    DUNGEON_ENTRANCE: 11,
+    ROAD: 12,
+    BRIDGE: 13,
+    CAVE: 14,
+    RUINS: 15
+};
+
+const BIOME_TYPES = {
+    PLAINS: 'plains',
+    FOREST: 'forest',
+    MOUNTAINS: 'mountains',
+    DESERT: 'desert',
+    SWAMP: 'swamp',
+    TUNDRA: 'tundra',
+    DARK_FOREST: 'dark_forest'
 };
 
 const RARITY = {
@@ -328,96 +342,235 @@ const ITEM_TEMPLATES = {
 // ============================================================================
 
 const ENEMY_TEMPLATES = {
-    rat: {
-        name: 'Giant Rat',
-        icon: '🐀',
+    // Plains enemies
+    slime: {
+        name: 'Slime',
+        icon: '💧',
         level: 1,
-        hp: 15,
-        damage: 3,
+        hp: 12,
+        damage: 2,
         defense: 1,
-        agility: 5,
-        xp: 10,
-        gold: 5
+        agility: 3,
+        xp: 8,
+        gold: 5,
+        biome: BIOME_TYPES.PLAINS
     },
-    goblin: {
-        name: 'Goblin',
-        icon: '👺',
+    boar: {
+        name: 'Wild Boar',
+        icon: '🐗',
         level: 2,
         hp: 25,
         damage: 6,
+        defense: 4,
+        agility: 5,
+        xp: 15,
+        gold: 10,
+        biome: BIOME_TYPES.PLAINS
+    },
+    goblin: {
+        name: 'Goblin Scout',
+        icon: '👺',
+        level: 2,
+        hp: 20,
+        damage: 5,
         defense: 3,
         agility: 7,
         xp: 20,
-        gold: 15
+        gold: 15,
+        biome: BIOME_TYPES.PLAINS
     },
-    skeleton: {
-        name: 'Skeleton Warrior',
-        icon: '💀',
+
+    // Forest enemies
+    wolf: {
+        name: 'Grey Wolf',
+        icon: '🐺',
+        level: 3,
+        hp: 30,
+        damage: 8,
+        defense: 3,
+        agility: 9,
+        xp: 25,
+        gold: 12,
+        biome: BIOME_TYPES.FOREST
+    },
+    bandit: {
+        name: 'Forest Bandit',
+        icon: '🏹',
         level: 3,
         hp: 35,
         damage: 10,
         defense: 5,
-        agility: 4,
-        xp: 35,
-        gold: 25
+        agility: 8,
+        xp: 30,
+        gold: 35,
+        biome: BIOME_TYPES.FOREST
     },
-    orc: {
-        name: 'Orc Brute',
-        icon: '👹',
+    treant: {
+        name: 'Treant',
+        icon: '🌲',
         level: 4,
         hp: 50,
+        damage: 12,
+        defense: 10,
+        agility: 2,
+        xp: 40,
+        gold: 25,
+        biome: BIOME_TYPES.FOREST
+    },
+
+    // Mountain enemies
+    harpy: {
+        name: 'Harpy',
+        icon: '🦅',
+        level: 4,
+        hp: 35,
+        damage: 12,
+        defense: 4,
+        agility: 12,
+        xp: 45,
+        gold: 30,
+        biome: BIOME_TYPES.MOUNTAINS
+    },
+    stone_golem: {
+        name: 'Stone Golem',
+        icon: '🗿',
+        level: 5,
+        hp: 70,
         damage: 15,
-        defense: 8,
+        defense: 15,
         agility: 3,
-        xp: 50,
-        gold: 40
+        xp: 60,
+        gold: 50,
+        biome: BIOME_TYPES.MOUNTAINS
+    },
+    griffin: {
+        name: 'Griffin',
+        icon: '🦅',
+        level: 6,
+        hp: 60,
+        damage: 18,
+        defense: 8,
+        agility: 11,
+        xp: 80,
+        gold: 70,
+        biome: BIOME_TYPES.MOUNTAINS
+    },
+
+    // Desert enemies
+    scorpion: {
+        name: 'Giant Scorpion',
+        icon: '🦂',
+        level: 3,
+        hp: 28,
+        damage: 9,
+        defense: 6,
+        agility: 6,
+        xp: 28,
+        gold: 20,
+        biome: BIOME_TYPES.DESERT
+    },
+    mummy: {
+        name: 'Mummy',
+        icon: '🧟',
+        level: 5,
+        hp: 45,
+        damage: 14,
+        defense: 7,
+        agility: 4,
+        xp: 55,
+        gold: 45,
+        biome: BIOME_TYPES.DESERT
+    },
+    sand_worm: {
+        name: 'Sand Worm',
+        icon: '🪱',
+        level: 6,
+        hp: 80,
+        damage: 20,
+        defense: 10,
+        agility: 5,
+        xp: 90,
+        gold: 60,
+        biome: BIOME_TYPES.DESERT
+    },
+
+    // Dark Forest enemies
+    skeleton: {
+        name: 'Skeleton Warrior',
+        icon: '💀',
+        level: 4,
+        hp: 35,
+        damage: 11,
+        defense: 5,
+        agility: 6,
+        xp: 40,
+        gold: 30,
+        biome: BIOME_TYPES.DARK_FOREST
     },
     wraith: {
         name: 'Wraith',
         icon: '👻',
-        level: 5,
-        hp: 40,
+        level: 6,
+        hp: 50,
         damage: 18,
         defense: 4,
         agility: 10,
-        xp: 70,
-        gold: 60,
+        xp: 75,
+        gold: 65,
+        biome: BIOME_TYPES.DARK_FOREST,
         special: 'phase'
     },
     dark_knight: {
         name: 'Dark Knight',
         icon: '⚔️',
-        level: 6,
-        hp: 80,
-        damage: 22,
-        defense: 15,
-        agility: 6,
-        xp: 100,
-        gold: 100
-    },
-    demon: {
-        name: 'Lesser Demon',
-        icon: '😈',
         level: 7,
-        hp: 100,
-        damage: 28,
-        defense: 12,
-        agility: 8,
-        xp: 150,
-        gold: 150,
-        special: 'fire'
+        hp: 90,
+        damage: 24,
+        defense: 16,
+        agility: 7,
+        xp: 110,
+        gold: 100,
+        biome: BIOME_TYPES.DARK_FOREST
     },
+    necromancer: {
+        name: 'Necromancer',
+        icon: '🧙',
+        level: 8,
+        hp: 70,
+        damage: 28,
+        defense: 8,
+        agility: 6,
+        xp: 140,
+        gold: 120,
+        biome: BIOME_TYPES.DARK_FOREST,
+        special: 'summon'
+    },
+
+    // Boss monsters
     dragon: {
-        name: 'Young Dragon',
+        name: 'Ancient Dragon',
         icon: '🐉',
         level: 10,
-        hp: 200,
+        hp: 250,
         damage: 45,
         defense: 25,
-        agility: 7,
+        agility: 8,
         xp: 500,
         gold: 500,
         special: 'breath',
+        boss: true
+    },
+    demon_lord: {
+        name: 'Demon Lord',
+        icon: '😈',
+        level: 12,
+        hp: 300,
+        damage: 50,
+        defense: 20,
+        agility: 10,
+        xp: 750,
+        gold: 800,
+        special: 'fire',
         boss: true
     }
 };
@@ -1009,189 +1162,387 @@ class Enemy {
 }
 
 // ============================================================================
-// DUNGEON GENERATION
+// WORLD GENERATION
 // ============================================================================
 
-class Dungeon {
-    constructor(width, height, floor) {
+class World {
+    constructor(width, height) {
         this.width = width;
         this.height = height;
-        this.floor = floor;
         this.tiles = [];
-        this.rooms = [];
+        this.biomes = [];
         this.enemies = [];
         this.items = [];
+        this.towns = [];
+        this.poi = []; // Points of interest
 
         this.generate();
     }
 
     generate() {
-        // Initialize with walls
+        console.log('Generating open world...');
+
+        // Initialize with grass (base terrain)
         for (let y = 0; y < this.height; y++) {
             this.tiles[y] = [];
+            this.biomes[y] = [];
             for (let x = 0; x < this.width; x++) {
-                this.tiles[y][x] = TILE_TYPES.WALL;
+                this.tiles[y][x] = TILE_TYPES.GRASS;
+                this.biomes[y][x] = BIOME_TYPES.PLAINS;
             }
         }
 
-        // Generate rooms
-        const numRooms = random(8, 12);
+        // Generate biomes using simple noise-like patterns
+        this.generateBiomes();
 
-        for (let i = 0; i < numRooms; i++) {
-            const width = random(5, 10);
-            const height = random(5, 10);
-            const x = random(1, this.width - width - 1);
-            const y = random(1, this.height - height - 1);
+        // Place terrain features based on biomes
+        this.generateTerrain();
 
-            const room = { x, y, width, height };
+        // Place starting town
+        this.placeStartingTown();
 
-            // Check if room overlaps
-            let overlaps = false;
-            for (const other of this.rooms) {
-                if (this.roomsOverlap(room, other)) {
-                    overlaps = true;
-                    break;
-                }
-            }
-
-            if (!overlaps) {
-                this.createRoom(room);
-                this.rooms.push(room);
-
-                // Connect to previous room
-                if (this.rooms.length > 1) {
-                    const prev = this.rooms[this.rooms.length - 2];
-                    this.createCorridor(
-                        Math.floor(prev.x + prev.width / 2),
-                        Math.floor(prev.y + prev.height / 2),
-                        Math.floor(room.x + room.width / 2),
-                        Math.floor(room.y + room.height / 2)
-                    );
-                }
-            }
-        }
-
-        // Place stairs
-        const lastRoom = this.rooms[this.rooms.length - 1];
-        const stairsX = Math.floor(lastRoom.x + lastRoom.width / 2);
-        const stairsY = Math.floor(lastRoom.y + lastRoom.height / 2);
-        this.tiles[stairsY][stairsX] = TILE_TYPES.STAIRS_DOWN;
+        // Place other towns
+        this.placeTowns();
 
         // Place enemies
         this.placeEnemies();
 
-        // Place items
+        // Place items and treasures
         this.placeItems();
 
-        // Place chests
-        this.placeChests();
+        // Place points of interest
+        this.placePointsOfInterest();
 
-        // Place special rooms
-        this.placeSpecialRooms();
+        console.log('World generation complete!');
     }
 
-    createRoom(room) {
-        for (let y = room.y; y < room.y + room.height; y++) {
-            for (let x = room.x; x < room.x + room.width; x++) {
-                if (x > 0 && x < this.width - 1 && y > 0 && y < this.height - 1) {
-                    this.tiles[y][x] = TILE_TYPES.FLOOR;
+    generateBiomes() {
+        // Create biome regions
+        const biomeSeeds = [];
+
+        // Plains (center, safe starting area)
+        biomeSeeds.push({ x: Math.floor(this.width / 2), y: Math.floor(this.height / 2), type: BIOME_TYPES.PLAINS, radius: 25 });
+
+        // Forest regions
+        for (let i = 0; i < 3; i++) {
+            biomeSeeds.push({ x: random(15, this.width - 15), y: random(15, this.height - 15), type: BIOME_TYPES.FOREST, radius: random(15, 25) });
+        }
+
+        // Mountain regions
+        for (let i = 0; i < 2; i++) {
+            biomeSeeds.push({ x: random(15, this.width - 15), y: random(15, this.height - 15), type: BIOME_TYPES.MOUNTAINS, radius: random(12, 20) });
+        }
+
+        // Desert regions
+        biomeSeeds.push({ x: random(20, this.width - 20), y: random(20, this.height - 20), type: BIOME_TYPES.DESERT, radius: random(15, 22) });
+
+        // Dark Forest (dangerous area)
+        biomeSeeds.push({ x: random(30, this.width - 30), y: random(30, this.height - 30), type: BIOME_TYPES.DARK_FOREST, radius: random(18, 25) });
+
+        // Apply biomes
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                let closestSeed = biomeSeeds[0];
+                let closestDist = distance(x, y, closestSeed.x, closestSeed.y);
+
+                for (const seed of biomeSeeds) {
+                    const dist = distance(x, y, seed.x, seed.y);
+                    if (dist < closestDist && dist < seed.radius) {
+                        closestSeed = seed;
+                        closestDist = dist;
+                    }
+                }
+
+                this.biomes[y][x] = closestSeed.type;
+            }
+        }
+    }
+
+    generateTerrain() {
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const biome = this.biomes[y][x];
+
+                switch(biome) {
+                    case BIOME_TYPES.PLAINS:
+                        this.tiles[y][x] = TILE_TYPES.GRASS;
+                        // Occasional trees
+                        if (random(1, 100) < 5) {
+                            this.tiles[y][x] = TILE_TYPES.TREE;
+                        }
+                        break;
+
+                    case BIOME_TYPES.FOREST:
+                        if (random(1, 100) < 60) {
+                            this.tiles[y][x] = TILE_TYPES.TREE;
+                        } else {
+                            this.tiles[y][x] = TILE_TYPES.GRASS;
+                        }
+                        break;
+
+                    case BIOME_TYPES.MOUNTAINS:
+                        if (random(1, 100) < 70) {
+                            this.tiles[y][x] = TILE_TYPES.MOUNTAIN;
+                        } else {
+                            this.tiles[y][x] = TILE_TYPES.STONE;
+                        }
+                        // Caves
+                        if (random(1, 100) < 3) {
+                            this.tiles[y][x] = TILE_TYPES.CAVE;
+                        }
+                        break;
+
+                    case BIOME_TYPES.DESERT:
+                        this.tiles[y][x] = TILE_TYPES.SAND;
+                        // Ruins
+                        if (random(1, 100) < 2) {
+                            this.tiles[y][x] = TILE_TYPES.RUINS;
+                        }
+                        break;
+
+                    case BIOME_TYPES.DARK_FOREST:
+                        if (random(1, 100) < 80) {
+                            this.tiles[y][x] = TILE_TYPES.TREE;
+                        } else {
+                            this.tiles[y][x] = TILE_TYPES.GRASS;
+                        }
+                        break;
+                }
+            }
+        }
+
+        // Add some water bodies
+        this.generateWater();
+    }
+
+    generateWater() {
+        const numLakes = random(3, 6);
+        for (let i = 0; i < numLakes; i++) {
+            const centerX = random(10, this.width - 10);
+            const centerY = random(10, this.height - 10);
+            const radius = random(3, 7);
+
+            for (let y = centerY - radius; y <= centerY + radius; y++) {
+                for (let x = centerX - radius; x <= centerX + radius; x++) {
+                    if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+                        if (distance(x, y, centerX, centerY) <= radius) {
+                            this.tiles[y][x] = TILE_TYPES.WATER;
+                        }
+                    }
                 }
             }
         }
     }
 
-    createCorridor(x1, y1, x2, y2) {
-        // Horizontal then vertical
-        for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
-            if (x > 0 && x < this.width - 1 && y1 > 0 && y1 < this.height - 1) {
-                this.tiles[y1][x] = TILE_TYPES.FLOOR;
+    placeStartingTown() {
+        const x = Math.floor(this.width / 2);
+        const y = Math.floor(this.height / 2);
+
+        // Clear area for town
+        for (let ty = y - 3; ty <= y + 3; ty++) {
+            for (let tx = x - 3; tx <= x + 3; tx++) {
+                if (tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) {
+                    this.tiles[ty][tx] = TILE_TYPES.GRASS;
+                }
             }
         }
 
-        for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
-            if (x2 > 0 && x2 < this.width - 1 && y > 0 && y < this.height - 1) {
-                this.tiles[y][x2] = TILE_TYPES.FLOOR;
-            }
-        }
+        // Place town marker
+        this.tiles[y][x] = TILE_TYPES.TOWN;
+
+        this.towns.push({
+            x, y,
+            name: 'Starter Village',
+            type: 'starting',
+            hasShop: true,
+            hasInn: true
+        });
     }
 
-    roomsOverlap(room1, room2) {
-        return (room1.x < room2.x + room2.width + 1 &&
-                room1.x + room1.width + 1 > room2.x &&
-                room1.y < room2.y + room2.height + 1 &&
-                room1.y + room1.height + 1 > room2.y);
+    placeTowns() {
+        // Place 3-5 additional towns in different biomes
+        const numTowns = random(3, 5);
+
+        for (let i = 0; i < numTowns; i++) {
+            let placed = false;
+            let attempts = 0;
+
+            while (!placed && attempts < 50) {
+                const x = random(20, this.width - 20);
+                const y = random(20, this.height - 20);
+
+                // Check if far enough from other towns
+                let tooClose = false;
+                for (const town of this.towns) {
+                    if (distance(x, y, town.x, town.y) < 30) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+
+                if (!tooClose && this.isWalkable(x, y)) {
+                    // Clear small area
+                    for (let ty = y - 2; ty <= y + 2; ty++) {
+                        for (let tx = x - 2; tx <= x + 2; tx++) {
+                            if (tx >= 0 && tx < this.width && ty >= 0 && ty < this.height) {
+                                this.tiles[ty][tx] = TILE_TYPES.GRASS;
+                            }
+                        }
+                    }
+
+                    this.tiles[y][x] = TILE_TYPES.TOWN;
+
+                    const biome = this.biomes[y][x];
+                    const townNames = {
+                        [BIOME_TYPES.PLAINS]: ['Meadowbrook', 'Greenfield', 'Pleasant Valley'],
+                        [BIOME_TYPES.FOREST]: ['Forestkeep', 'Woodland', 'Oakshire'],
+                        [BIOME_TYPES.MOUNTAINS]: ['Highpeak', 'Mountain Rest', 'Stone Haven'],
+                        [BIOME_TYPES.DESERT]: ['Oasis Town', 'Sandport', 'Dune City'],
+                        [BIOME_TYPES.DARK_FOREST]: ['Shadow Village', 'Dark Hollow', 'Grimwood']
+                    };
+
+                    const nameList = townNames[biome] || townNames[BIOME_TYPES.PLAINS];
+                    const townName = randomChoice(nameList);
+
+                    this.towns.push({
+                        x, y,
+                        name: townName,
+                        type: biome,
+                        hasShop: random(1, 100) > 30,
+                        hasInn: true
+                    });
+
+                    placed = true;
+                }
+
+                attempts++;
+            }
+        }
     }
 
     placeEnemies() {
-        const numEnemies = random(10, 15) + this.floor;
+        // Spread enemies across the world based on biomes
+        const totalEnemies = 150;
 
-        for (let i = 0; i < numEnemies; i++) {
-            const room = randomChoice(this.rooms);
-            const x = random(room.x + 1, room.x + room.width - 2);
-            const y = random(room.y + 1, room.y + room.height - 2);
+        for (let i = 0; i < totalEnemies; i++) {
+            let placed = false;
+            let attempts = 0;
 
-            // Choose enemy based on floor
-            const enemyTypes = ['rat', 'goblin', 'skeleton', 'orc', 'wraith', 'dark_knight', 'demon'];
-            const maxType = Math.min(this.floor, enemyTypes.length - 1);
-            const enemyType = enemyTypes[random(0, maxType)];
+            while (!placed && attempts < 50) {
+                const x = random(5, this.width - 5);
+                const y = random(5, this.height - 5);
 
-            const enemy = new Enemy(ENEMY_TEMPLATES[enemyType], this.floor);
-            enemy.x = x;
-            enemy.y = y;
+                // Don't place enemies near towns or on unwalkable tiles
+                let nearTown = false;
+                for (const town of this.towns) {
+                    if (distance(x, y, town.x, town.y) < 10) {
+                        nearTown = true;
+                        break;
+                    }
+                }
 
-            this.enemies.push(enemy);
-        }
+                if (!nearTown && this.isWalkable(x, y)) {
+                    const biome = this.biomes[y][x];
 
-        // Spawn boss on boss floors
-        if (this.floor % 5 === 0) {
-            const room = this.rooms[this.rooms.length - 2];
-            const boss = new Enemy(ENEMY_TEMPLATES.dragon, this.floor);
-            boss.x = Math.floor(room.x + room.width / 2);
-            boss.y = Math.floor(room.y + room.height / 2);
-            this.enemies.push(boss);
+                    // Get enemies for this biome
+                    const biomeEnemies = Object.entries(ENEMY_TEMPLATES)
+                        .filter(([key, template]) => template.biome === biome)
+                        .map(([key, template]) => key);
+
+                    if (biomeEnemies.length > 0) {
+                        const enemyType = randomChoice(biomeEnemies);
+                        const enemy = new Enemy(ENEMY_TEMPLATES[enemyType], 1);
+                        enemy.x = x;
+                        enemy.y = y;
+                        this.enemies.push(enemy);
+                        placed = true;
+                    }
+                }
+
+                attempts++;
+            }
         }
     }
 
     placeItems() {
-        const numItems = random(3, 6);
+        // Place random items scattered across the world
+        const numItems = 50;
 
         for (let i = 0; i < numItems; i++) {
-            const room = randomChoice(this.rooms);
-            const x = random(room.x + 1, room.x + room.width - 2);
-            const y = random(room.y + 1, room.y + room.height - 2);
+            let placed = false;
+            let attempts = 0;
 
-            const item = this.generateRandomItem();
-            item.x = x;
-            item.y = y;
+            while (!placed && attempts < 30) {
+                const x = random(5, this.width - 5);
+                const y = random(5, this.height - 5);
 
-            this.items.push(item);
+                if (this.isWalkable(x, y)) {
+                    const item = this.generateRandomItem();
+                    item.x = x;
+                    item.y = y;
+                    this.items.push(item);
+                    placed = true;
+                }
+
+                attempts++;
+            }
         }
     }
 
-    placeChests() {
-        const numChests = random(2, 4);
+    placePointsOfInterest() {
+        // Shrines
+        for (let i = 0; i < 5; i++) {
+            let placed = false;
+            let attempts = 0;
 
-        for (let i = 0; i < numChests; i++) {
-            const room = randomChoice(this.rooms);
-            const x = random(room.x + 1, room.x + room.width - 2);
-            const y = random(room.y + 1, room.y + room.height - 2);
+            while (!placed && attempts < 30) {
+                const x = random(10, this.width - 10);
+                const y = random(10, this.height - 10);
 
-            if (this.tiles[y][x] === TILE_TYPES.FLOOR) {
-                this.tiles[y][x] = TILE_TYPES.CHEST;
+                if (this.isWalkable(x, y)) {
+                    this.tiles[y][x] = TILE_TYPES.SHRINE;
+                    this.poi.push({ x, y, type: 'shrine' });
+                    placed = true;
+                }
+
+                attempts++;
+            }
+        }
+
+        // Dungeon entrances
+        for (let i = 0; i < 3; i++) {
+            let placed = false;
+            let attempts = 0;
+
+            while (!placed && attempts < 30) {
+                const x = random(20, this.width - 20);
+                const y = random(20, this.height - 20);
+
+                // Place in darker biomes
+                if (this.biomes[y][x] === BIOME_TYPES.DARK_FOREST ||
+                    this.biomes[y][x] === BIOME_TYPES.MOUNTAINS) {
+                    if (this.tiles[y][x] === TILE_TYPES.GRASS || this.tiles[y][x] === TILE_TYPES.STONE) {
+                        this.tiles[y][x] = TILE_TYPES.DUNGEON_ENTRANCE;
+                        this.poi.push({ x, y, type: 'dungeon' });
+                        placed = true;
+                    }
+                }
+
+                attempts++;
             }
         }
     }
 
     generateRandomItem() {
-        // Determine rarity based on floor
+        // Simple random item generation
         const rarityRoll = random(1, 100);
         let rarity;
 
-        if (this.floor >= 10 && rarityRoll > 95) {
+        if (rarityRoll > 95) {
             rarity = RARITY.LEGENDARY;
-        } else if (this.floor >= 7 && rarityRoll > 85) {
+        } else if (rarityRoll > 85) {
             rarity = RARITY.EPIC;
-        } else if (this.floor >= 4 && rarityRoll > 70) {
+        } else if (rarityRoll > 70) {
             rarity = RARITY.RARE;
         } else if (rarityRoll > 50) {
             rarity = RARITY.UNCOMMON;
@@ -1199,59 +1550,32 @@ class Dungeon {
             rarity = RARITY.COMMON;
         }
 
-        // Filter items by rarity
         const validItems = Object.values(ITEM_TEMPLATES).filter(item => item.rarity === rarity);
 
         if (validItems.length > 0) {
             return { ...randomChoice(validItems) };
         }
 
-        // Fallback to common items
         return { ...ITEM_TEMPLATES.health_potion };
     }
 
-    placeSpecialRooms() {
-        // Skip first and last room
-        const specialRoomCandidates = this.rooms.slice(1, -1);
-
-        if (specialRoomCandidates.length === 0) return;
-
-        // 30% chance for shrine (healing/buffs)
-        if (random(1, 100) <= 30 && specialRoomCandidates.length > 0) {
-            const room = randomChoice(specialRoomCandidates);
-            const x = Math.floor(room.x + room.width / 2);
-            const y = Math.floor(room.y + room.height / 2);
-            this.tiles[y][x] = TILE_TYPES.SHRINE;
-            room.isSpecial = 'shrine';
-        }
-
-        // 20% chance for treasure room (lots of loot!)
-        if (random(1, 100) <= 20 && specialRoomCandidates.length > 1) {
-            const room = randomChoice(specialRoomCandidates.filter(r => !r.isSpecial));
-            if (room) {
-                const x = Math.floor(room.x + room.width / 2);
-                const y = Math.floor(room.y + room.height / 2);
-                this.tiles[y][x] = TILE_TYPES.TREASURE;
-
-                // Add extra chests and items
-                for (let i = 0; i < 3; i++) {
-                    const cx = random(room.x + 1, room.x + room.width - 2);
-                    const cy = random(room.y + 1, room.y + room.height - 2);
-                    if (this.tiles[cy][cx] === TILE_TYPES.FLOOR) {
-                        this.tiles[cy][cx] = TILE_TYPES.CHEST;
-                    }
-                }
-                room.isSpecial = 'treasure';
-            }
-        }
+    getStartPosition() {
+        // Start in the center town
+        return {
+            x: Math.floor(this.width / 2),
+            y: Math.floor(this.height / 2)
+        };
     }
 
-    getStartPosition() {
-        const firstRoom = this.rooms[0];
-        return {
-            x: Math.floor(firstRoom.x + firstRoom.width / 2),
-            y: Math.floor(firstRoom.y + firstRoom.height / 2)
-        };
+    getBiomeAt(x, y) {
+        if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+            return BIOME_TYPES.PLAINS;
+        }
+        return this.biomes[y][x];
+    }
+
+    getTownAt(x, y) {
+        return this.towns.find(t => t.x === x && t.y === y);
     }
 
     isWalkable(x, y) {
@@ -1260,11 +1584,15 @@ class Dungeon {
         }
 
         const tile = this.tiles[y][x];
-        return tile === TILE_TYPES.FLOOR ||
-               tile === TILE_TYPES.STAIRS_DOWN ||
-               tile === TILE_TYPES.CHEST ||
+        return tile === TILE_TYPES.GRASS ||
+               tile === TILE_TYPES.SAND ||
+               tile === TILE_TYPES.STONE ||
+               tile === TILE_TYPES.ROAD ||
+               tile === TILE_TYPES.TOWN ||
                tile === TILE_TYPES.SHRINE ||
-               tile === TILE_TYPES.TREASURE;
+               tile === TILE_TYPES.DUNGEON_ENTRANCE ||
+               tile === TILE_TYPES.CAVE ||
+               tile === TILE_TYPES.RUINS;
     }
 
     getEnemyAt(x, y) {
@@ -1284,8 +1612,7 @@ class Game {
     constructor() {
         this.state = 'title';
         this.player = null;
-        this.dungeon = null;
-        this.floor = 1;
+        this.world = null;
         this.selectedClass = null;
         this.inCombat = false;
         this.currentEnemy = null;
@@ -1416,7 +1743,6 @@ class Game {
 
     startGame() {
         this.player = new Player(this.selectedClass);
-        this.floor = 1;
         this.messageLog = [];
 
         this.generateDungeon();
@@ -1434,8 +1760,8 @@ class Game {
     }
 
     generateDungeon() {
-        this.dungeon = new Dungeon(DUNGEON_WIDTH, DUNGEON_HEIGHT, this.floor);
-        const startPos = this.dungeon.getStartPosition();
+        this.world = new World(WORLD_WIDTH, WORLD_HEIGHT, this.floor);
+        const startPos = this.world.getStartPosition();
         this.player.x = startPos.x;
         this.player.y = startPos.y;
 
@@ -1483,40 +1809,40 @@ class Game {
         const newY = this.player.y + dy;
 
         // Check for enemy
-        const enemy = this.dungeon.getEnemyAt(newX, newY);
+        const enemy = this.world.getEnemyAt(newX, newY);
         if (enemy) {
             this.startCombat(enemy);
             return;
         }
 
         // Check if walkable
-        if (!this.dungeon.isWalkable(newX, newY)) {
+        if (!this.world.isWalkable(newX, newY)) {
             return;
         }
 
         // Check for stairs
-        if (this.dungeon.tiles[newY][newX] === TILE_TYPES.STAIRS_DOWN) {
+        if (this.world.tiles[newY][newX] === TILE_TYPES.STAIRS_DOWN) {
             this.descendStairs();
             return;
         }
 
         // Check for chest
-        if (this.dungeon.tiles[newY][newX] === TILE_TYPES.CHEST) {
+        if (this.world.tiles[newY][newX] === TILE_TYPES.CHEST) {
             this.openChest(newX, newY);
         }
 
         // Check for shrine
-        if (this.dungeon.tiles[newY][newX] === TILE_TYPES.SHRINE) {
+        if (this.world.tiles[newY][newX] === TILE_TYPES.SHRINE) {
             this.useShrine(newX, newY);
         }
 
         // Check for treasure room
-        if (this.dungeon.tiles[newY][newX] === TILE_TYPES.TREASURE) {
+        if (this.world.tiles[newY][newX] === TILE_TYPES.TREASURE) {
             this.openTreasureRoom(newX, newY);
         }
 
         // Check for item
-        const item = this.dungeon.getItemAt(newX, newY);
+        const item = this.world.getItemAt(newX, newY);
         if (item) {
             this.pickupItem(item);
         }
@@ -1537,7 +1863,7 @@ class Game {
     }
 
     enemyTurn() {
-        for (const enemy of this.dungeon.enemies) {
+        for (const enemy of this.world.enemies) {
             if (enemy.hp <= 0) continue;
 
             // Simple AI: move towards player if in range
@@ -1562,7 +1888,7 @@ class Game {
                     if (this.player.hp <= 0) {
                         this.gameOver();
                     }
-                } else if (this.dungeon.isWalkable(newX, newY) && !this.dungeon.getEnemyAt(newX, newY)) {
+                } else if (this.world.isWalkable(newX, newY) && !this.world.getEnemyAt(newX, newY)) {
                     enemy.x = newX;
                     enemy.y = newY;
                 }
@@ -1788,7 +2114,7 @@ class Game {
             for (const [dx, dy] of directions) {
                 const newX = this.player.x + dx;
                 const newY = this.player.y + dy;
-                if (this.dungeon.isWalkable(newX, newY) && !this.dungeon.getEnemyAt(newX, newY)) {
+                if (this.world.isWalkable(newX, newY) && !this.world.getEnemyAt(newX, newY)) {
                     this.player.x = newX;
                     this.player.y = newY;
                     this.addMessage('You successfully fled!', 'success');
@@ -1816,10 +2142,10 @@ class Game {
 
         // Random loot drop
         if (random(1, 100) > 60) {
-            const item = this.dungeon.generateRandomItem();
+            const item = this.world.generateRandomItem();
             item.x = this.currentEnemy.x;
             item.y = this.currentEnemy.y;
-            this.dungeon.items.push(item);
+            this.world.items.push(item);
             this.addMessage(`${this.currentEnemy.name} dropped ${item.name}!`, 'info');
         }
 
@@ -1844,20 +2170,20 @@ class Game {
     pickupItem(item) {
         if (this.player.addItem(item)) {
             this.addMessage(`Picked up ${item.name}`, 'success');
-            const index = this.dungeon.items.indexOf(item);
-            this.dungeon.items.splice(index, 1);
+            const index = this.world.items.indexOf(item);
+            this.world.items.splice(index, 1);
         } else {
             this.addMessage('Inventory full!', 'warning');
         }
     }
 
     openChest(x, y) {
-        this.dungeon.tiles[y][x] = TILE_TYPES.FLOOR;
+        this.world.tiles[y][x] = TILE_TYPES.FLOOR;
 
         // Generate 2-4 items
         const numItems = random(2, 4);
         for (let i = 0; i < numItems; i++) {
-            const item = this.dungeon.generateRandomItem();
+            const item = this.world.generateRandomItem();
             if (this.player.addItem(item)) {
                 this.addMessage(`Found ${item.name} in chest!`, 'success');
             }
@@ -1871,7 +2197,7 @@ class Game {
     }
 
     useShrine(x, y) {
-        this.dungeon.tiles[y][x] = TILE_TYPES.FLOOR;
+        this.world.tiles[y][x] = TILE_TYPES.FLOOR;
 
         const shrineType = random(1, 3);
 
@@ -1908,7 +2234,7 @@ class Game {
     }
 
     openTreasureRoom(x, y) {
-        this.dungeon.tiles[y][x] = TILE_TYPES.FLOOR;
+        this.world.tiles[y][x] = TILE_TYPES.FLOOR;
 
         // Massive gold bonus
         const gold = random(100, 200) * this.floor;
@@ -1918,7 +2244,7 @@ class Game {
         this.showFloatingText(x, y, `+${gold}g`, '#ffd700', true);
 
         // Guarantee at least one rare item
-        const rareItem = this.dungeon.generateRandomItem();
+        const rareItem = this.world.generateRandomItem();
         if (this.player.addItem(rareItem)) {
             this.addMessage(`Found legendary treasure: ${rareItem.name}!`, 'success');
         }
@@ -1950,8 +2276,8 @@ class Game {
                 const x = this.player.x + dx;
                 const y = this.player.y + dy;
 
-                if (x >= 0 && x < this.dungeon.width && y >= 0 && y < this.dungeon.height) {
-                    if (this.dungeon.tiles[y][x] === TILE_TYPES.CHEST) {
+                if (x >= 0 && x < this.world.width && y >= 0 && y < this.world.height) {
+                    if (this.world.tiles[y][x] === TILE_TYPES.CHEST) {
                         this.addMessage(`You found a chest nearby!`, 'info');
                         found = true;
                     }
@@ -2230,15 +2556,15 @@ class Game {
         const vision = this.player.stats.vision;
 
         // Set canvas size
-        const viewWidth = Math.min(25, this.dungeon.width);
-        const viewHeight = Math.min(19, this.dungeon.height);
+        const viewWidth = Math.min(25, this.world.width);
+        const viewHeight = Math.min(19, this.world.height);
 
         this.canvas.width = viewWidth * TILE_SIZE;
         this.canvas.height = viewHeight * TILE_SIZE;
 
         // Calculate camera offset
-        const cameraX = clamp(this.player.x - Math.floor(viewWidth / 2), 0, this.dungeon.width - viewWidth);
-        const cameraY = clamp(this.player.y - Math.floor(viewHeight / 2), 0, this.dungeon.height - viewHeight);
+        const cameraX = clamp(this.player.x - Math.floor(viewWidth / 2), 0, this.world.width - viewWidth);
+        const cameraY = clamp(this.player.y - Math.floor(viewHeight / 2), 0, this.world.height - viewHeight);
 
         // Clear canvas
         this.ctx.fillStyle = '#000000';
@@ -2250,7 +2576,7 @@ class Game {
                 const worldX = x + cameraX;
                 const worldY = y + cameraY;
 
-                if (worldX >= this.dungeon.width || worldY >= this.dungeon.height) continue;
+                if (worldX >= this.world.width || worldY >= this.world.height) continue;
 
                 const dist = distance(worldX, worldY, this.player.x, this.player.y);
 
@@ -2261,7 +2587,7 @@ class Game {
                     continue;
                 }
 
-                const tile = this.dungeon.tiles[worldY][worldX];
+                const tile = this.world.tiles[worldY][worldX];
                 const screenX = x * TILE_SIZE;
                 const screenY = y * TILE_SIZE;
 
@@ -2313,7 +2639,7 @@ class Game {
         }
 
         // Render items
-        for (const item of this.dungeon.items) {
+        for (const item of this.world.items) {
             const dist = distance(item.x, item.y, this.player.x, this.player.y);
             if (dist <= vision) {
                 const screenX = (item.x - cameraX) * TILE_SIZE;
@@ -2327,7 +2653,7 @@ class Game {
         }
 
         // Render enemies
-        for (const enemy of this.dungeon.enemies) {
+        for (const enemy of this.world.enemies) {
             if (enemy.hp <= 0) continue;
 
             const dist = distance(enemy.x, enemy.y, this.player.x, this.player.y);
