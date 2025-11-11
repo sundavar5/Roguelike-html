@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeons of Eldoria - Medieval Roguelike</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Title Screen -->
+        <div id="title-screen" class="screen active">
+            <div class="title-content">
+                <h1 class="game-title">⚔️ DUNGEONS OF ELDORIA ⚔️</h1>
+                <p class="subtitle">A Medieval Roguelike Adventure</p>
+
+                <div class="class-selection">
+                    <h2>Choose Your Hero</h2>
+                    <div class="class-cards">
+                        <div class="class-card" data-class="warrior">
+                            <div class="class-icon">🛡️</div>
+                            <h3>Warrior</h3>
+                            <div class="class-stats">
+                                <p>HP: 120 | Mana: 20</p>
+                                <p>STR: 15 | DEF: 12 | AGI: 8</p>
+                            </div>
+                            <p class="class-desc">A mighty fighter with superior strength and defense. Excels in melee combat.</p>
+                        </div>
+                        <div class="class-card" data-class="rogue">
+                            <div class="class-icon">🗡️</div>
+                            <h3>Rogue</h3>
+                            <div class="class-stats">
+                                <p>HP: 80 | Mana: 30</p>
+                                <p>STR: 10 | DEF: 8 | AGI: 16</p>
+                            </div>
+                            <p class="class-desc">A swift assassin with high agility. Masters critical strikes and evasion.</p>
+                        </div>
+                        <div class="class-card" data-class="mage">
+                            <div class="class-icon">🔮</div>
+                            <h3>Mage</h3>
+                            <div class="class-stats">
+                                <p>HP: 70 | Mana: 100</p>
+                                <p>STR: 6 | DEF: 6 | AGI: 10</p>
+                            </div>
+                            <p class="class-desc">A powerful spellcaster with devastating magic. Commands the elements.</p>
+                        </div>
+                    </div>
+                    <button id="start-game-btn" class="btn-primary" disabled>Begin Your Quest</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Game Screen -->
+        <div id="game-screen" class="screen">
+            <!-- Top Bar -->
+            <div id="top-bar">
+                <div class="player-info">
+                    <div class="player-portrait">
+                        <span id="player-icon">🛡️</span>
+                    </div>
+                    <div class="player-stats-bar">
+                        <div class="stat-group">
+                            <label>HP:</label>
+                            <div class="bar-container">
+                                <div id="hp-bar" class="stat-bar hp-bar"></div>
+                                <span id="hp-text" class="bar-text">100/100</span>
+                            </div>
+                        </div>
+                        <div class="stat-group">
+                            <label>Mana:</label>
+                            <div class="bar-container">
+                                <div id="mana-bar" class="stat-bar mana-bar"></div>
+                                <span id="mana-text" class="bar-text">50/50</span>
+                            </div>
+                        </div>
+                        <div class="stat-group">
+                            <label>XP:</label>
+                            <div class="bar-container">
+                                <div id="xp-bar" class="stat-bar xp-bar"></div>
+                                <span id="xp-text" class="bar-text">0/100</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="player-level">
+                        <span>Level <span id="player-level">1</span></span>
+                        <span id="player-class">Warrior</span>
+                    </div>
+                </div>
+                <div class="game-info">
+                    <div class="info-item">
+                        <span class="info-label">Floor:</span>
+                        <span id="floor-number" class="info-value">1</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Gold:</span>
+                        <span id="gold-amount" class="info-value">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Score:</span>
+                        <span id="score-amount" class="info-value">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Game Area -->
+            <div id="main-game-area">
+                <!-- Left Panel -->
+                <div id="left-panel" class="panel">
+                    <div class="panel-section">
+                        <h3>Character Stats</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">⚔️ Strength:</span>
+                                <span id="stat-str" class="stat-value">10</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">🛡️ Defense:</span>
+                                <span id="stat-def" class="stat-value">10</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">⚡ Agility:</span>
+                                <span id="stat-agi" class="stat-value">10</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">✨ Magic:</span>
+                                <span id="stat-mag" class="stat-value">10</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">💀 Crit Chance:</span>
+                                <span id="stat-crit" class="stat-value">5%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">👁️ Vision:</span>
+                                <span id="stat-vision" class="stat-value">5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <h3>Equipment</h3>
+                        <div id="equipment-slots">
+                            <div class="equipment-slot" data-slot="weapon">
+                                <span class="slot-icon">⚔️</span>
+                                <div class="slot-info">
+                                    <span class="slot-name">Weapon</span>
+                                    <span class="slot-item">None</span>
+                                </div>
+                            </div>
+                            <div class="equipment-slot" data-slot="armor">
+                                <span class="slot-icon">🛡️</span>
+                                <div class="slot-info">
+                                    <span class="slot-name">Armor</span>
+                                    <span class="slot-item">None</span>
+                                </div>
+                            </div>
+                            <div class="equipment-slot" data-slot="shield">
+                                <span class="slot-icon">🔰</span>
+                                <div class="slot-info">
+                                    <span class="slot-name">Shield</span>
+                                    <span class="slot-item">None</span>
+                                </div>
+                            </div>
+                            <div class="equipment-slot" data-slot="ring">
+                                <span class="slot-icon">💍</span>
+                                <div class="slot-info">
+                                    <span class="slot-name">Ring</span>
+                                    <span class="slot-item">None</span>
+                                </div>
+                            </div>
+                            <div class="equipment-slot" data-slot="amulet">
+                                <span class="slot-icon">📿</span>
+                                <div class="slot-info">
+                                    <span class="slot-name">Amulet</span>
+                                    <span class="slot-item">None</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <h3>Skills</h3>
+                        <div id="skills-container"></div>
+                    </div>
+                </div>
+
+                <!-- Center Panel - Dungeon -->
+                <div id="center-panel">
+                    <canvas id="dungeon-canvas"></canvas>
+                    <div id="combat-overlay" class="hidden">
+                        <div class="combat-container">
+                            <div class="enemy-display">
+                                <h3 id="enemy-name">Enemy</h3>
+                                <div class="enemy-icon" id="enemy-icon">👹</div>
+                                <div class="enemy-hp-container">
+                                    <div id="enemy-hp-bar" class="stat-bar hp-bar"></div>
+                                    <span id="enemy-hp-text" class="bar-text">50/50</span>
+                                </div>
+                                <div class="enemy-stats" id="enemy-stats"></div>
+                            </div>
+                            <div class="combat-actions">
+                                <h4>Choose Your Action:</h4>
+                                <div id="combat-buttons">
+                                    <button class="combat-btn" data-action="attack">⚔️ Attack</button>
+                                    <button class="combat-btn" data-action="heavy">💥 Heavy Strike</button>
+                                    <button class="combat-btn" data-action="defend">🛡️ Defend</button>
+                                    <button class="combat-btn" data-action="skill">✨ Use Skill</button>
+                                    <button class="combat-btn" data-action="item">🧪 Use Item</button>
+                                    <button class="combat-btn" data-action="flee">🏃 Flee</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel -->
+                <div id="right-panel" class="panel">
+                    <div class="panel-section">
+                        <h3>Message Log</h3>
+                        <div id="message-log"></div>
+                    </div>
+
+                    <div class="panel-section">
+                        <h3>Inventory <span id="inventory-count">(0/20)</span></h3>
+                        <div id="inventory-grid"></div>
+                    </div>
+
+                    <div class="panel-section">
+                        <h3>Quick Actions</h3>
+                        <div class="quick-actions">
+                            <button class="action-btn" id="rest-btn">🛌 Rest (R)</button>
+                            <button class="action-btn" id="search-btn">🔍 Search (S)</button>
+                            <button class="action-btn" id="skills-btn">📖 Skills (K)</button>
+                            <button class="action-btn" id="map-btn">🗺️ Map (M)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills Modal -->
+        <div id="skills-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Skill Tree</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="skill-points">
+                        <span>Available Skill Points: <strong id="skill-points">0</strong></span>
+                    </div>
+                    <div id="skill-tree"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Item Detail Modal -->
+        <div id="item-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="item-modal-title">Item</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="item-modal-content"></div>
+                    <div class="modal-actions">
+                        <button id="item-use-btn" class="btn-primary">Use</button>
+                        <button id="item-equip-btn" class="btn-primary">Equip</button>
+                        <button id="item-drop-btn" class="btn-secondary">Drop</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen">
+            <div class="game-over-content">
+                <h1 id="game-over-title">YOU HAVE FALLEN</h1>
+                <div class="final-stats">
+                    <h2>Final Statistics</h2>
+                    <div class="stat-row">
+                        <span>Level Reached:</span>
+                        <span id="final-level">1</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Deepest Floor:</span>
+                        <span id="final-floor">1</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Enemies Slain:</span>
+                        <span id="final-kills">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Gold Collected:</span>
+                        <span id="final-gold">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Final Score:</span>
+                        <span id="final-score">0</span>
+                    </div>
+                </div>
+                <button id="restart-btn" class="btn-primary">Return to Title</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
