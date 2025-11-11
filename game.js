@@ -18,7 +18,11 @@ const TILE_TYPES = {
     STAIRS_DOWN: 4,
     STAIRS_UP: 5,
     CHEST: 6,
-    ALTAR: 7
+    ALTAR: 7,
+    SHOP: 8,
+    SHRINE: 9,
+    TREASURE: 10,
+    TRAP: 11
 };
 
 const RARITY = {
@@ -579,6 +583,10 @@ class Player {
         // Initialize stats based on class
         this.initializeClass(className);
 
+        // Store BASE max values (never modified directly)
+        this.baseMaxHp = this.maxHp;
+        this.baseMaxMana = this.maxMana;
+
         this.hp = this.maxHp;
         this.mana = this.maxMana;
 
@@ -606,6 +614,7 @@ class Player {
 
         this.buffs = [];
         this.defending = false;
+        this.statusEffects = [];
     }
 
     initializeClass(className) {
@@ -645,6 +654,38 @@ class Player {
 
         // Add starting skills based on class
         this.initializeSkills();
+
+        // Add starting equipment
+        this.giveStartingEquipment();
+    }
+
+    giveStartingEquipment() {
+        // All classes start with basic equipment
+        const startingEquipment = {
+            warrior: {
+                weapon: { ...ITEM_TEMPLATES.rusty_sword },
+                armor: { ...ITEM_TEMPLATES.leather_armor },
+                shield: { ...ITEM_TEMPLATES.wooden_shield }
+            },
+            rogue: {
+                weapon: { ...ITEM_TEMPLATES.dagger },
+                armor: { ...ITEM_TEMPLATES.leather_armor }
+            },
+            mage: {
+                weapon: { ...ITEM_TEMPLATES.wooden_staff },
+                armor: { ...ITEM_TEMPLATES.leather_armor }
+            }
+        };
+
+        const gear = startingEquipment[this.className];
+        for (const slot in gear) {
+            this.equipment[slot] = gear[slot];
+        }
+
+        // Start with 3 health potions
+        for (let i = 0; i < 3; i++) {
+            this.addItem({ ...ITEM_TEMPLATES.health_potion });
+        }
     }
 
     initializeSkills() {
@@ -661,15 +702,19 @@ class Player {
     getTotalStats() {
         const total = { ...this.stats };
 
+        // Calculate max HP and mana from base + equipment (without modifying base values)
+        let equipHpBonus = 0;
+        let equipManaBonus = 0;
+
         // Add equipment bonuses
         for (const slot in this.equipment) {
             const item = this.equipment[slot];
             if (item && item.stats) {
                 for (const stat in item.stats) {
                     if (stat === 'hp') {
-                        this.maxHp += item.stats[stat];
+                        equipHpBonus += item.stats[stat];
                     } else if (stat === 'mana') {
-                        this.maxMana += item.stats[stat];
+                        equipManaBonus += item.stats[stat];
                     } else if (stat === 'str') {
                         total.strength += item.stats[stat];
                     } else if (stat === 'def') {
@@ -684,6 +729,10 @@ class Player {
                 }
             }
         }
+
+        // Update maxHp and maxMana based on base + bonuses
+        this.maxHp = this.baseMaxHp + equipHpBonus;
+        this.maxMana = this.baseMaxMana + equipManaBonus;
 
         // Apply buff modifiers
         for (const buff of this.buffs) {
@@ -782,9 +831,14 @@ class Player {
         this.stats.agility += gains.agility;
         this.stats.magic += gains.magic;
 
-        // Increase max HP and mana
-        this.maxHp += 10;
-        this.maxMana += 5;
+        // Increase BASE max HP and mana
+        this.baseMaxHp += 10;
+        this.baseMaxMana += 5;
+
+        // Recalculate total stats to update maxHp/maxMana
+        this.getTotalStats();
+
+        // Full heal on level up
         this.hp = this.maxHp;
         this.mana = this.maxMana;
 
@@ -1031,6 +1085,9 @@ class Dungeon {
 
         // Place chests
         this.placeChests();
+
+        // Place special rooms
+        this.placeSpecialRooms();
     }
 
     createRoom(room) {
@@ -1153,6 +1210,42 @@ class Dungeon {
         return { ...ITEM_TEMPLATES.health_potion };
     }
 
+    placeSpecialRooms() {
+        // Skip first and last room
+        const specialRoomCandidates = this.rooms.slice(1, -1);
+
+        if (specialRoomCandidates.length === 0) return;
+
+        // 30% chance for shrine (healing/buffs)
+        if (random(1, 100) <= 30 && specialRoomCandidates.length > 0) {
+            const room = randomChoice(specialRoomCandidates);
+            const x = Math.floor(room.x + room.width / 2);
+            const y = Math.floor(room.y + room.height / 2);
+            this.tiles[y][x] = TILE_TYPES.SHRINE;
+            room.isSpecial = 'shrine';
+        }
+
+        // 20% chance for treasure room (lots of loot!)
+        if (random(1, 100) <= 20 && specialRoomCandidates.length > 1) {
+            const room = randomChoice(specialRoomCandidates.filter(r => !r.isSpecial));
+            if (room) {
+                const x = Math.floor(room.x + room.width / 2);
+                const y = Math.floor(room.y + room.height / 2);
+                this.tiles[y][x] = TILE_TYPES.TREASURE;
+
+                // Add extra chests and items
+                for (let i = 0; i < 3; i++) {
+                    const cx = random(room.x + 1, room.x + room.width - 2);
+                    const cy = random(room.y + 1, room.y + room.height - 2);
+                    if (this.tiles[cy][cx] === TILE_TYPES.FLOOR) {
+                        this.tiles[cy][cx] = TILE_TYPES.CHEST;
+                    }
+                }
+                room.isSpecial = 'treasure';
+            }
+        }
+    }
+
     getStartPosition() {
         const firstRoom = this.rooms[0];
         return {
@@ -1169,7 +1262,9 @@ class Dungeon {
         const tile = this.tiles[y][x];
         return tile === TILE_TYPES.FLOOR ||
                tile === TILE_TYPES.STAIRS_DOWN ||
-               tile === TILE_TYPES.CHEST;
+               tile === TILE_TYPES.CHEST ||
+               tile === TILE_TYPES.SHRINE ||
+               tile === TILE_TYPES.TREASURE;
     }
 
     getEnemyAt(x, y) {
@@ -1195,12 +1290,66 @@ class Game {
         this.inCombat = false;
         this.currentEnemy = null;
         this.messageLog = [];
+        this.damageNumbers = [];
+        this.floatingTexts = [];
+        this.shakeAmount = 0;
+        this.lastRenderTime = 0;
 
         this.canvas = document.getElementById('dungeon-canvas');
         this.ctx = this.canvas.getContext('2d');
 
         this.setupEventListeners();
         this.initializeUI();
+        this.startRenderLoop();
+    }
+
+    startRenderLoop() {
+        const loop = (timestamp) => {
+            if (this.state === 'playing') {
+                const deltaTime = timestamp - this.lastRenderTime;
+                this.lastRenderTime = timestamp;
+                this.updateAnimations(deltaTime);
+                this.render();
+            }
+            requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+    }
+
+    updateAnimations(deltaTime) {
+        // Update floating damage numbers
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+            const text = this.floatingTexts[i];
+            text.life += deltaTime;
+            text.y -= deltaTime * 0.03;
+            text.alpha = Math.max(0, 1 - text.life / text.duration);
+
+            if (text.life >= text.duration) {
+                this.floatingTexts.splice(i, 1);
+            }
+        }
+
+        // Update screen shake
+        if (this.shakeAmount > 0) {
+            this.shakeAmount -= deltaTime * 0.01;
+            if (this.shakeAmount < 0) this.shakeAmount = 0;
+        }
+    }
+
+    showFloatingText(x, y, text, color = '#ff4444', isCrit = false) {
+        this.floatingTexts.push({
+            x, y,
+            text,
+            color,
+            isCrit,
+            life: 0,
+            duration: 1000,
+            alpha: 1
+        });
+    }
+
+    screenShake(amount = 10) {
+        this.shakeAmount = amount;
     }
 
     setupEventListeners() {
@@ -1356,6 +1505,16 @@ class Game {
             this.openChest(newX, newY);
         }
 
+        // Check for shrine
+        if (this.dungeon.tiles[newY][newX] === TILE_TYPES.SHRINE) {
+            this.useShrine(newX, newY);
+        }
+
+        // Check for treasure room
+        if (this.dungeon.tiles[newY][newX] === TILE_TYPES.TREASURE) {
+            this.openTreasureRoom(newX, newY);
+        }
+
         // Check for item
         const item = this.dungeon.getItemAt(newX, newY);
         if (item) {
@@ -1465,6 +1624,8 @@ class Game {
         // Enemy turn
         const enemyDamage = this.currentEnemy.calculateDamage();
         const actualDamage = this.player.takeDamage(enemyDamage);
+        this.showFloatingText(this.player.x, this.player.y, `-${actualDamage}`, '#ff0000', false);
+        this.screenShake(6);
         this.addMessage(`${this.currentEnemy.name} attacks for ${actualDamage} damage!`, 'combat');
 
         // Apply poison
@@ -1497,9 +1658,13 @@ class Game {
         if (isCrit) {
             damage *= 2;
             const actualDamage = this.currentEnemy.takeDamage(damage);
+            this.showFloatingText(this.currentEnemy.x, this.currentEnemy.y, `-${actualDamage}`, '#ff8800', true);
+            this.screenShake(8);
             return `Critical hit! You deal ${actualDamage} damage!`;
         } else {
             const actualDamage = this.currentEnemy.takeDamage(damage);
+            this.showFloatingText(this.currentEnemy.x, this.currentEnemy.y, `-${actualDamage}`, '#ff4444', false);
+            this.screenShake(4);
             return `You attack for ${actualDamage} damage!`;
         }
     }
@@ -1512,6 +1677,8 @@ class Game {
         this.player.mana -= 5;
         let damage = this.player.calculateDamage() * 1.5;
         const actualDamage = this.currentEnemy.takeDamage(Math.floor(damage));
+        this.showFloatingText(this.currentEnemy.x, this.currentEnemy.y, `-${actualDamage}`, '#ffaa00', false);
+        this.screenShake(12);
         return `You perform a heavy strike for ${actualDamage} damage!`;
     }
 
@@ -1700,6 +1867,61 @@ class Game {
         const gold = random(20, 50) * this.floor;
         this.player.gold += gold;
         this.addMessage(`Found ${gold} gold!`, 'success');
+        this.showFloatingText(x, y, `+${gold}g`, '#ffd700', false);
+    }
+
+    useShrine(x, y) {
+        this.dungeon.tiles[y][x] = TILE_TYPES.FLOOR;
+
+        const shrineType = random(1, 3);
+
+        switch(shrineType) {
+            case 1:
+                // Healing shrine
+                this.player.hp = this.player.maxHp;
+                this.player.mana = this.player.maxMana;
+                this.addMessage('The shrine fully restores your health and mana!', 'success');
+                this.showFloatingText(x, y, 'RESTORED', '#44ff44', false);
+                break;
+            case 2:
+                // Blessing shrine
+                this.player.buffs.push({
+                    name: 'Shrine Blessing',
+                    duration: 20,
+                    strMod: 1.2,
+                    defMod: 1.2
+                });
+                this.addMessage('The shrine blesses you with increased power!', 'success');
+                this.showFloatingText(x, y, 'BLESSED', '#ffff00', false);
+                break;
+            case 3:
+                // XP shrine
+                const xpGain = 50 * this.floor;
+                const levels = this.player.gainXp(xpGain);
+                this.addMessage(`The shrine grants you ${xpGain} experience!`, 'success');
+                this.showFloatingText(x, y, `+${xpGain} XP`, '#00ffff', false);
+                if (levels.length > 0) {
+                    this.addMessage(`Level up! You are now level ${this.player.level}!`, 'success');
+                }
+                break;
+        }
+    }
+
+    openTreasureRoom(x, y) {
+        this.dungeon.tiles[y][x] = TILE_TYPES.FLOOR;
+
+        // Massive gold bonus
+        const gold = random(100, 200) * this.floor;
+        this.player.gold += gold;
+        this.player.score += gold;
+        this.addMessage(`Treasure room! You found ${gold} gold!`, 'success');
+        this.showFloatingText(x, y, `+${gold}g`, '#ffd700', true);
+
+        // Guarantee at least one rare item
+        const rareItem = this.dungeon.generateRandomItem();
+        if (this.player.addItem(rareItem)) {
+            this.addMessage(`Found legendary treasure: ${rareItem.name}!`, 'success');
+        }
     }
 
     rest() {
@@ -2063,6 +2285,14 @@ class Game {
                         color = '#4a4a4a';
                         symbol = '📦';
                         break;
+                    case TILE_TYPES.SHRINE:
+                        color = '#6a5acd';
+                        symbol = '⛩️';
+                        break;
+                    case TILE_TYPES.TREASURE:
+                        color = '#ffd700';
+                        symbol = '💎';
+                        break;
                 }
 
                 this.ctx.fillStyle = color;
@@ -2116,6 +2346,15 @@ class Game {
             }
         }
 
+        // Apply screen shake
+        let shakeX = 0, shakeY = 0;
+        if (this.shakeAmount > 0) {
+            shakeX = (Math.random() - 0.5) * this.shakeAmount;
+            shakeY = (Math.random() - 0.5) * this.shakeAmount;
+            this.ctx.save();
+            this.ctx.translate(shakeX, shakeY);
+        }
+
         // Render player
         const playerScreenX = (this.player.x - cameraX) * TILE_SIZE;
         const playerScreenY = (this.player.y - cameraY) * TILE_SIZE;
@@ -2127,6 +2366,29 @@ class Game {
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText(this.player.icon, playerScreenX + TILE_SIZE / 2, playerScreenY + TILE_SIZE / 2);
+
+        // Restore from shake
+        if (this.shakeAmount > 0) {
+            this.ctx.restore();
+        }
+
+        // Render floating damage numbers
+        for (const text of this.floatingTexts) {
+            const screenX = (text.x - cameraX) * TILE_SIZE + TILE_SIZE / 2;
+            const screenY = (text.y - cameraY) * TILE_SIZE;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = text.alpha;
+            this.ctx.font = text.isCrit ? 'bold 24px Arial' : 'bold 18px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeText(text.text, screenX, screenY);
+            this.ctx.fillStyle = text.color;
+            this.ctx.fillText(text.text, screenX, screenY);
+            this.ctx.restore();
+        }
     }
 
     gameOver() {
