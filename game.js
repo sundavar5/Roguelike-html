@@ -2906,27 +2906,14 @@ const TALENT_TEMPLATES = {
 
 class Player {
     constructor(className) {
+        console.log('Player constructor called with className:', className);
+
         this.className = className;
         this.level = 1;
         this.xp = 0;
         this.xpToLevel = 100;
 
-        // Initialize stats based on class
-        this.initializeClass(className);
-
-        // Store BASE max values (never modified directly)
-        this.baseMaxHp = this.maxHp;
-        this.baseMaxMana = this.maxMana;
-
-        this.hp = this.maxHp;
-        this.mana = this.maxMana;
-
-        this.x = 0;
-        this.y = 0;
-        this.gold = 0;
-        this.score = 0;
-        this.kills = 0;
-
+        // Initialize inventory and equipment FIRST to avoid undefined errors
         this.inventory = [];
         this.maxInventorySize = 20;
 
@@ -2950,9 +2937,31 @@ class Player {
         this.buffs = [];
         this.defending = false;
         this.statusEffects = [];
+
+        this.x = 0;
+        this.y = 0;
+        this.gold = 0;
+        this.score = 0;
+        this.kills = 0;
+
+        // Initialize stats based on class (do this AFTER equipment is defined)
+        console.log('Calling initializeClass...');
+        this.initializeClass(className);
+        console.log('initializeClass completed');
+
+        // Store BASE max values (never modified directly)
+        this.baseMaxHp = this.maxHp;
+        this.baseMaxMana = this.maxMana;
+
+        this.hp = this.maxHp;
+        this.mana = this.maxMana;
+
+        console.log('Player constructor complete');
     }
 
     initializeClass(className) {
+        console.log('initializeClass called for:', className);
+
         const classData = {
             warrior: {
                 icon: '🛡️',
@@ -2975,6 +2984,11 @@ class Player {
         };
 
         const data = classData[className];
+        if (!data) {
+            throw new Error(`Invalid class name: ${className}. Must be warrior, rogue, or mage.`);
+        }
+
+        console.log('Setting class stats...');
         this.icon = data.icon;
         this.maxHp = data.maxHp;
         this.maxMana = data.maxMana;
@@ -2987,9 +3001,12 @@ class Player {
             vision: 5
         };
 
+        console.log('Initializing skills...');
         // Add starting skills based on class
         this.initializeSkills();
 
+        console.log('Giving starting equipment...');
+        console.log('Equipment object exists?', !!this.equipment);
         // Add starting equipment
         this.giveStartingEquipment();
     }
