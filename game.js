@@ -5239,6 +5239,582 @@ class Game {
         document.getElementById('start-game-btn').disabled = true;
         this.selectedClass = null;
     }
+
+    // ========================================================================
+    // SAVE/LOAD SYSTEM
+    // ========================================================================
+
+    saveGame(slotNumber = 1) {
+        try {
+            const saveData = {
+                version: '1.0',
+                timestamp: Date.now(),
+                slotNumber: slotNumber,
+                player: {
+                    className: this.player.className,
+                    level: this.player.level,
+                    xp: this.player.xp,
+                    xpToLevel: this.player.xpToLevel,
+                    hp: this.player.hp,
+                    maxHp: this.player.maxHp,
+                    baseMaxHp: this.player.baseMaxHp,
+                    mana: this.player.mana,
+                    maxMana: this.player.maxMana,
+                    baseMaxMana: this.player.baseMaxMana,
+                    str: this.player.str,
+                    def: this.player.def,
+                    agi: this.player.agi,
+                    mag: this.player.mag,
+                    crit: this.player.crit,
+                    gold: this.player.gold,
+                    score: this.player.score,
+                    kills: this.player.kills,
+                    x: this.player.x,
+                    y: this.player.y,
+                    inventory: this.player.inventory,
+                    equipment: this.player.equipment,
+                    skills: this.player.skills,
+                    buffs: this.player.buffs
+                },
+                world: {
+                    width: this.world.width,
+                    height: this.world.height,
+                    seed: this.world.seed || Date.now()
+                },
+                game: {
+                    currentBiome: this.currentBiome,
+                    dayCount: this.dayCount,
+                    timeOfDay: this.timeOfDay,
+                    weather: this.weather
+                },
+                quests: {
+                    active: this.activeQuests,
+                    completed: this.completedQuests
+                },
+                reputation: this.reputation,
+                companion: this.companion,
+                achievements: this.unlockedAchievements,
+                craftedItems: this.craftedItems,
+                playTime: this.playTime || 0
+            };
+
+            const saveKey = `roguelike_save_slot_${slotNumber}`;
+            localStorage.setItem(saveKey, JSON.stringify(saveData));
+            this.addMessage(`Game saved to slot ${slotNumber}!`, 'success');
+            return true;
+        } catch (error) {
+            console.error('Error saving game:', error);
+            this.addMessage('Failed to save game!', 'warning');
+            return false;
+        }
+    }
+
+    loadGame(slotNumber = 1) {
+        try {
+            const saveKey = `roguelike_save_slot_${slotNumber}`;
+            const saveDataString = localStorage.getItem(saveKey);
+
+            if (!saveDataString) {
+                this.addMessage(`No save found in slot ${slotNumber}!`, 'warning');
+                return false;
+            }
+
+            const saveData = JSON.parse(saveDataString);
+
+            // Restore player
+            this.player = new Player(saveData.player.className);
+            Object.assign(this.player, saveData.player);
+
+            // Regenerate world (or restore if we saved tile data)
+            this.world = new World(saveData.world.width, saveData.world.height, saveData.world.seed);
+            this.player.x = saveData.player.x;
+            this.player.y = saveData.player.y;
+
+            // Restore game state
+            this.currentBiome = saveData.game.currentBiome;
+            this.dayCount = saveData.game.dayCount;
+            this.timeOfDay = saveData.game.timeOfDay;
+            this.weather = saveData.game.weather;
+
+            // Restore quests
+            this.activeQuests = saveData.quests.active;
+            this.completedQuests = saveData.quests.completed;
+
+            // Restore other systems
+            this.reputation = saveData.reputation;
+            this.companion = saveData.companion;
+            this.unlockedAchievements = saveData.achievements;
+            this.craftedItems = saveData.craftedItems;
+            this.playTime = saveData.playTime || 0;
+
+            // Update UI
+            this.state = 'playing';
+            document.getElementById('title-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+            this.updateUI();
+            this.render();
+
+            this.addMessage(`Game loaded from slot ${slotNumber}!`, 'success');
+            return true;
+        } catch (error) {
+            console.error('Error loading game:', error);
+            this.addMessage('Failed to load game!', 'warning');
+            return false;
+        }
+    }
+
+    deleteSave(slotNumber) {
+        try {
+            const saveKey = `roguelike_save_slot_${slotNumber}`;
+            localStorage.removeItem(saveKey);
+            this.addMessage(`Save slot ${slotNumber} deleted!`, 'info');
+            return true;
+        } catch (error) {
+            console.error('Error deleting save:', error);
+            return false;
+        }
+    }
+
+    getAllSaves() {
+        const saves = [];
+        for (let i = 1; i <= 3; i++) {
+            const saveKey = `roguelike_save_slot_${i}`;
+            const saveData = localStorage.getItem(saveKey);
+            if (saveData) {
+                try {
+                    const parsed = JSON.parse(saveData);
+                    saves.push({
+                        slot: i,
+                        exists: true,
+                        timestamp: parsed.timestamp,
+                        level: parsed.player.level,
+                        className: parsed.player.className,
+                        playTime: parsed.playTime || 0
+                    });
+                } catch (e) {
+                    saves.push({ slot: i, exists: false });
+                }
+            } else {
+                saves.push({ slot: i, exists: false });
+            }
+        }
+        return saves;
+    }
+
+    showSaveMenu() {
+        const saves = this.getAllSaves();
+
+        const modal = document.createElement('div');
+        modal.className = 'modal save-modal';
+
+        const savesHTML = saves.map(save => {
+            if (save.exists) {
+                const date = new Date(save.timestamp).toLocaleString();
+                const hours = Math.floor(save.playTime / 3600);
+                const minutes = Math.floor((save.playTime % 3600) / 60);
+                return `
+                    <div class="save-slot filled">
+                        <div class="save-info">
+                            <h4>Slot ${save.slot}</h4>
+                            <p>Level ${save.level} ${save.className}</p>
+                            <p class="save-time">${date}</p>
+                            <p class="play-time">Playtime: ${hours}h ${minutes}m</p>
+                        </div>
+                        <div class="save-actions">
+                            <button class="save-btn" data-slot="${save.slot}">Save Here</button>
+                            <button class="load-btn" data-slot="${save.slot}">Load</button>
+                            <button class="delete-btn" data-slot="${save.slot}">Delete</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="save-slot empty">
+                        <div class="save-info">
+                            <h4>Slot ${save.slot}</h4>
+                            <p>Empty Slot</p>
+                        </div>
+                        <div class="save-actions">
+                            <button class="save-btn" data-slot="${save.slot}">Save Here</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>💾 Save / Load Game</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    ${savesHTML}
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Event listeners
+        modal.querySelector('.close-btn').addEventListener('click', () => modal.remove());
+
+        modal.querySelectorAll('.save-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const slot = parseInt(btn.dataset.slot);
+                this.saveGame(slot);
+                modal.remove();
+                setTimeout(() => this.showSaveMenu(), 100);
+            });
+        });
+
+        modal.querySelectorAll('.load-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const slot = parseInt(btn.dataset.slot);
+                modal.remove();
+                this.loadGame(slot);
+            });
+        });
+
+        modal.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const slot = parseInt(btn.dataset.slot);
+                if (confirm(`Delete save in slot ${slot}?`)) {
+                    this.deleteSave(slot);
+                    modal.remove();
+                    setTimeout(() => this.showSaveMenu(), 100);
+                }
+            });
+        });
+    }
+
+    autoSave() {
+        if (this.state === 'playing' && this.player) {
+            this.saveGame(0); // Slot 0 for autosave
+        }
+    }
+
+    // ========================================================================
+    // STATISTICS & LEADERBOARD SYSTEM
+    // ========================================================================
+
+    getStatistics() {
+        return {
+            totalPlayTime: this.playTime || 0,
+            level: this.player.level,
+            kills: this.player.kills,
+            gold: this.player.gold,
+            score: this.player.score,
+            questsCompleted: this.completedQuests.length,
+            achievementsUnlocked: this.unlockedAchievements.length,
+            itemsCrafted: this.craftedItems.length,
+            highestLevel: this.getHighScore('highestLevel') || this.player.level,
+            mostKills: this.getHighScore('mostKills') || this.player.kills,
+            mostGold: this.getHighScore('mostGold') || this.player.gold
+        };
+    }
+
+    showStatistics() {
+        const stats = this.getStatistics();
+        const hours = Math.floor(stats.totalPlayTime / 3600);
+        const minutes = Math.floor((stats.totalPlayTime % 3600) / 60);
+
+        const modal = document.createElement('div');
+        modal.className = 'modal statistics-modal';
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📊 Statistics</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="stats-section">
+                        <h3>Current Run</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <span class="stat-icon">⭐</span>
+                                <span class="stat-label">Level</span>
+                                <span class="stat-value">${stats.level}</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-icon">💀</span>
+                                <span class="stat-label">Kills</span>
+                                <span class="stat-value">${stats.kills}</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-icon">💰</span>
+                                <span class="stat-label">Gold</span>
+                                <span class="stat-value">${stats.gold}</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-icon">🏆</span>
+                                <span class="stat-label">Score</span>
+                                <span class="stat-value">${stats.score}</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-icon">📜</span>
+                                <span class="stat-label">Quests</span>
+                                <span class="stat-value">${stats.questsCompleted}</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-icon">🎖️</span>
+                                <span class="stat-label">Achievements</span>
+                                <span class="stat-value">${stats.achievementsUnlocked}</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-icon">🔨</span>
+                                <span class="stat-label">Items Crafted</span>
+                                <span class="stat-value">${stats.itemsCrafted}</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-icon">⏰</span>
+                                <span class="stat-label">Play Time</span>
+                                <span class="stat-value">${hours}h ${minutes}m</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stats-section">
+                        <h3>Personal Records</h3>
+                        <div class="records-list">
+                            <div class="record-item">
+                                <span>🔝 Highest Level:</span>
+                                <span class="record-value">${stats.highestLevel}</span>
+                            </div>
+                            <div class="record-item">
+                                <span>💀 Most Kills:</span>
+                                <span class="record-value">${stats.mostKills}</span>
+                            </div>
+                            <div class="record-item">
+                                <span>💰 Most Gold:</span>
+                                <span class="record-value">${stats.mostGold}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+
+    updateHighScores() {
+        // Update high scores in localStorage
+        if (!this.player) return;
+
+        const currentHighest = this.getHighScore('highestLevel') || 0;
+        if (this.player.level > currentHighest) {
+            this.setHighScore('highestLevel', this.player.level);
+        }
+
+        const mostKills = this.getHighScore('mostKills') || 0;
+        if (this.player.kills > mostKills) {
+            this.setHighScore('mostKills', this.player.kills);
+        }
+
+        const mostGold = this.getHighScore('mostGold') || 0;
+        if (this.player.gold > mostGold) {
+            this.setHighScore('mostGold', this.player.gold);
+        }
+    }
+
+    getHighScore(key) {
+        try {
+            return parseInt(localStorage.getItem(`roguelike_highscore_${key}`)) || 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    setHighScore(key, value) {
+        try {
+            localStorage.setItem(`roguelike_highscore_${key}`, value.toString());
+        } catch (e) {
+            console.error('Error setting high score:', e);
+        }
+    }
+
+    // ========================================================================
+    // ADVANCED GAME MECHANICS
+    // ========================================================================
+
+    // Critical hit system
+    calculateCriticalHit(baseDamage, critChance, critMultiplier = 2.0) {
+        const roll = random(1, 100);
+        if (roll <= critChance) {
+            return {
+                damage: Math.floor(baseDamage * critMultiplier),
+                isCrit: true
+            };
+        }
+        return {
+            damage: baseDamage,
+            isCrit: false
+        };
+    }
+
+    // Dodge system
+    attemptDodge(agiStat) {
+        const dodgeChance = Math.min(30, agiStat * 0.5); // Max 30% dodge
+        return random(1, 100) <= dodgeChance;
+    }
+
+    // Lifesteal system
+    applyLifesteal(damage, lifestealPercent) {
+        const healAmount = Math.floor(damage * (lifestealPercent / 100));
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+        return healAmount;
+    }
+
+    // Status effect system
+    applyStatusEffect(target, effect) {
+        if (!target.statusEffects) {
+            target.statusEffects = [];
+        }
+
+        const existingEffect = target.statusEffects.find(e => e.type === effect.type);
+        if (existingEffect) {
+            existingEffect.duration = Math.max(existingEffect.duration, effect.duration);
+            existingEffect.power = Math.max(existingEffect.power, effect.power);
+        } else {
+            target.statusEffects.push({
+                type: effect.type,
+                duration: effect.duration,
+                power: effect.power
+            });
+        }
+    }
+
+    processStatusEffects(entity) {
+        if (!entity.statusEffects || entity.statusEffects.length === 0) return;
+
+        for (let i = entity.statusEffects.length - 1; i >= 0; i--) {
+            const effect = entity.statusEffects[i];
+
+            switch(effect.type) {
+                case 'poison':
+                    entity.hp -= effect.power;
+                    this.addMessage(`${entity.name || 'You'} takes ${effect.power} poison damage!`, 'combat');
+                    break;
+                case 'burn':
+                    entity.hp -= effect.power;
+                    this.addMessage(`${entity.name || 'You'} takes ${effect.power} burn damage!`, 'combat');
+                    break;
+                case 'regen':
+                    entity.hp = Math.min(entity.maxHp, entity.hp + effect.power);
+                    break;
+                case 'slow':
+                    // Reduce agility temporarily
+                    break;
+            }
+
+            effect.duration--;
+            if (effect.duration <= 0) {
+                entity.statusEffects.splice(i, 1);
+            }
+        }
+    }
+
+    // Chain attack system
+    performChainAttack(initialTarget, damage, chainCount) {
+        const targets = [];
+        targets.push(initialTarget);
+
+        // Find nearby enemies to chain to
+        for (let i = 1; i < chainCount; i++) {
+            const nearbyEnemies = this.world.enemies.filter(e =>
+                e.hp > 0 &&
+                !targets.includes(e) &&
+                Math.abs(e.x - this.player.x) <= 5 &&
+                Math.abs(e.y - this.player.y) <= 5
+            );
+
+            if (nearbyEnemies.length > 0) {
+                targets.push(randomChoice(nearbyEnemies));
+            } else {
+                break;
+            }
+        }
+
+        // Apply damage to all targets
+        targets.forEach((target, index) => {
+            const chainDamage = Math.floor(damage * Math.pow(0.7, index)); // 70% each bounce
+            target.hp -= chainDamage;
+            this.showFloatingText(target.x, target.y, `-${chainDamage}⚡`, '#ffff00');
+        });
+
+        if (targets.length > 1) {
+            this.addMessage(`Lightning chains to ${targets.length} enemies!`, 'combat');
+        }
+    }
+
+    // Area of effect damage
+    performAOEAttack(centerX, centerY, radius, damage) {
+        const affectedEnemies = this.world.enemies.filter(e =>
+            e.hp > 0 &&
+            Math.abs(e.x - centerX) <= radius &&
+            Math.abs(e.y - centerY) <= radius
+        );
+
+        affectedEnemies.forEach(enemy => {
+            enemy.hp -= damage;
+            this.showFloatingText(enemy.x, enemy.y, `-${damage}`, '#ff4444');
+            if (enemy.hp <= 0) {
+                this.onEnemyKilled(enemy);
+            }
+        });
+
+        return affectedEnemies.length;
+    }
+
+    // Summon companion for combat
+    summonCompanionForCombat(duration) {
+        const summons = [
+            { name: 'Shadow Clone', icon: '👤', damage: 15, hp: 50 },
+            { name: 'Fire Elemental', icon: '🔥', damage: 20, hp: 40 },
+            { name: 'Ice Golem', icon: '❄️', damage: 18, hp: 60 },
+            { name: 'Lightning Spirit', icon: '⚡', damage: 22, hp: 35 }
+        ];
+
+        const summon = randomChoice(summons);
+        this.activeSummon = {
+            ...summon,
+            duration: duration,
+            currentHp: summon.hp
+        };
+
+        this.addMessage(`${summon.name} ${summon.icon} appears to aid you!`, 'success');
+    }
+
+    processSummonAttack(enemy) {
+        if (!this.activeSummon || this.activeSummon.currentHp <= 0) {
+            this.activeSummon = null;
+            return 0;
+        }
+
+        const damage = this.activeSummon.damage;
+        enemy.hp -= damage;
+        this.addMessage(`${this.activeSummon.name} attacks for ${damage} damage!`, 'combat');
+        this.showFloatingText(enemy.x, enemy.y, `-${damage}`, '#ffaa00');
+
+        // Summon takes some damage
+        if (enemy.hp > 0) {
+            const counterDamage = Math.floor(enemy.damage * 0.3);
+            this.activeSummon.currentHp -= counterDamage;
+        }
+
+        this.activeSummon.duration--;
+        if (this.activeSummon.duration <= 0 || this.activeSummon.currentHp <= 0) {
+            this.addMessage(`${this.activeSummon.name} disappears...`, 'info');
+            this.activeSummon = null;
+        }
+
+        return damage;
+    }
 }
 
 // ============================================================================
