@@ -1986,6 +1986,89 @@ const SKILL_TEMPLATES = {
             return { message: 'enters a berserker rage!' };
         }
     },
+    cleave: {
+        name: 'Cleave',
+        icon: '⚔️',
+        description: 'Powerful swing damaging nearby enemies',
+        manaCost: 18,
+        cooldown: 5,
+        class: 'warrior',
+        effect: (game) => {
+            const damage = game.player.calculateDamage() * 1.5;
+            return { damage, aoe: 2, message: 'cleaves in a wide arc!' };
+        }
+    },
+    iron_wall: {
+        name: 'Iron Wall',
+        icon: '🛡️',
+        description: 'Massive defense boost for 3 turns',
+        manaCost: 15,
+        cooldown: 7,
+        class: 'warrior',
+        effect: (game) => {
+            game.player.buffs.push({
+                name: 'Iron Wall',
+                duration: 3,
+                defMod: 2.0
+            });
+            return { message: 'becomes an iron wall!' };
+        }
+    },
+    war_cry: {
+        name: 'War Cry',
+        icon: '📢',
+        description: 'Intimidating shout reducing enemy damage by 30%',
+        manaCost: 12,
+        cooldown: 6,
+        class: 'warrior',
+        effect: (game) => {
+            return { enemyDebuff: 'weakened', duration: 3, message: 'lets out a war cry!' };
+        }
+    },
+    execute: {
+        name: 'Execute',
+        icon: '💀',
+        description: 'Finishing blow dealing 300% damage to enemies below 30% HP',
+        manaCost: 25,
+        cooldown: 10,
+        class: 'warrior',
+        effect: (game) => {
+            const enemyHpPercent = (game.currentEnemy.hp / game.currentEnemy.maxHp) * 100;
+            const multiplier = enemyHpPercent < 30 ? 3 : 1.2;
+            const damage = game.player.calculateDamage() * multiplier;
+            return { damage, message: enemyHpPercent < 30 ? 'executes the enemy!' : 'strikes hard!' };
+        }
+    },
+    whirlwind: {
+        name: 'Whirlwind',
+        icon: '🌪️',
+        description: 'Spin attack hitting all nearby enemies',
+        manaCost: 30,
+        cooldown: 8,
+        class: 'warrior',
+        effect: (game) => {
+            const damage = game.player.calculateDamage() * 1.3;
+            return { damage, aoe: 3, message: 'spins in a deadly whirlwind!' };
+        }
+    },
+    last_stand: {
+        name: 'Last Stand',
+        icon: '⚡',
+        description: 'Survive fatal damage with 1 HP and gain massive buffs',
+        manaCost: 50,
+        cooldown: 15,
+        class: 'warrior',
+        effect: (game) => {
+            game.player.buffs.push({
+                name: 'Last Stand',
+                duration: 5,
+                strMod: 2.0,
+                defMod: 1.5,
+                lastStand: true
+            });
+            return { message: 'refuses to fall!' };
+        }
+    },
 
     // Rogue Skills
     backstab: {
@@ -2026,6 +2109,103 @@ const SKILL_TEMPLATES = {
         effect: (game) => {
             const damage = game.player.calculateDamage();
             return { damage, poison: 10, poisonTurns: 5, message: 'strikes with poison!' };
+        }
+    },
+    smoke_bomb: {
+        name: 'Smoke Bomb',
+        icon: '💨',
+        description: 'Escape combat and teleport to random nearby location',
+        manaCost: 20,
+        cooldown: 10,
+        class: 'rogue',
+        effect: (game) => {
+            return { flee: true, message: 'throws a smoke bomb and escapes!' };
+        }
+    },
+    dual_strike: {
+        name: 'Dual Strike',
+        icon: '⚔️',
+        description: 'Lightning-fast double attack',
+        manaCost: 18,
+        cooldown: 4,
+        class: 'rogue',
+        effect: (game) => {
+            const damage = game.player.calculateDamage() * 0.7;
+            return { damage, hits: 2, message: 'strikes twice in rapid succession!' };
+        }
+    },
+    evasion: {
+        name: 'Evasion',
+        icon: '💨',
+        description: 'Increase dodge chance by 50% for 4 turns',
+        manaCost: 15,
+        cooldown: 7,
+        class: 'rogue',
+        effect: (game) => {
+            game.player.buffs.push({
+                name: 'Evasion',
+                duration: 4,
+                dodgeBonus: 50
+            });
+            return { message: 'becomes incredibly evasive!' };
+        }
+    },
+    assassinate: {
+        name: 'Assassinate',
+        icon: '🗡️',
+        description: 'Instant kill enemies below 20% HP, otherwise deal 250% damage',
+        manaCost: 35,
+        cooldown: 12,
+        class: 'rogue',
+        effect: (game) => {
+            const enemyHpPercent = (game.currentEnemy.hp / game.currentEnemy.maxHp) * 100;
+            if (enemyHpPercent < 20) {
+                return { instakill: true, message: 'assassinates the weakened enemy!' };
+            } else {
+                const damage = game.player.calculateDamage() * 2.5;
+                return { damage, crit: true, message: 'attempts an assassination!' };
+            }
+        }
+    },
+    blade_flurry: {
+        name: 'Blade Flurry',
+        icon: '🌪️',
+        description: 'Rapid attacks hitting 5 times for reduced damage',
+        manaCost: 25,
+        cooldown: 8,
+        class: 'rogue',
+        effect: (game) => {
+            const damage = game.player.calculateDamage() * 0.4;
+            return { damage, hits: 5, message: 'unleashes a blade flurry!' };
+        }
+    },
+    vanish: {
+        name: 'Vanish',
+        icon: '👤',
+        description: 'Become invisible, next attack deals 400% damage',
+        manaCost: 30,
+        cooldown: 10,
+        class: 'rogue',
+        effect: (game) => {
+            game.player.buffs.push({
+                name: 'Vanish',
+                duration: 2,
+                nextAttackMod: 4.0,
+                invisible: true
+            });
+            return { message: 'vanishes from sight!' };
+        }
+    },
+    fan_of_knives: {
+        name: 'Fan of Knives',
+        icon: '🔪',
+        description: 'Throw knives in all directions',
+        manaCost: 22,
+        cooldown: 6,
+        class: 'rogue',
+        effect: (game) => {
+            const damage = game.player.calculateDamage() * 0.8;
+            return { damage, aoe: 3, message: 'throws a fan of knives!' };
         }
     },
 
@@ -2082,6 +2262,120 @@ const SKILL_TEMPLATES = {
             const manaGain = 30;
             game.player.mana = Math.min(game.player.maxMana, game.player.mana + manaGain);
             return { damage, magical: true, message: 'drains magical energy!' };
+        }
+    },
+    meteor_storm: {
+        name: 'Meteor Storm',
+        icon: '☄️',
+        description: 'Rain meteors dealing massive AOE damage',
+        manaCost: 50,
+        cooldown: 12,
+        class: 'mage',
+        effect: (game) => {
+            const damage = game.player.stats.magic * 5;
+            return { damage, aoe: 4, magical: true, message: 'calls down a meteor storm!' };
+        }
+    },
+    arcane_missiles: {
+        name: 'Arcane Missiles',
+        icon: '✨',
+        description: 'Fire 6 arcane missiles at the enemy',
+        manaCost: 28,
+        cooldown: 5,
+        class: 'mage',
+        effect: (game) => {
+            const damage = game.player.stats.magic * 0.8;
+            return { damage, hits: 6, magical: true, message: 'fires arcane missiles!' };
+        }
+    },
+    time_warp: {
+        name: 'Time Warp',
+        icon: '⏰',
+        description: 'Slow time, reducing enemy attack speed',
+        manaCost: 35,
+        cooldown: 10,
+        class: 'mage',
+        effect: (game) => {
+            return { enemyDebuff: 'slowed', duration: 5, message: 'warps time itself!' };
+        }
+    },
+    teleport: {
+        name: 'Teleport',
+        icon: '🌀',
+        description: 'Instantly escape from combat',
+        manaCost: 40,
+        cooldown: 15,
+        class: 'mage',
+        effect: (game) => {
+            return { flee: true, guaranteed: true, message: 'teleports away!' };
+        }
+    },
+    mana_shield: {
+        name: 'Mana Shield',
+        icon: '🔮',
+        description: 'Convert damage to mana cost for 5 turns',
+        manaCost: 45,
+        cooldown: 14,
+        class: 'mage',
+        effect: (game) => {
+            game.player.buffs.push({
+                name: 'Mana Shield',
+                duration: 5,
+                manaShield: true
+            });
+            return { message: 'activates a mana shield!' };
+        }
+    },
+    frost_nova: {
+        name: 'Frost Nova',
+        icon: '❄️',
+        description: 'Freeze all nearby enemies',
+        manaCost: 32,
+        cooldown: 8,
+        class: 'mage',
+        effect: (game) => {
+            const damage = game.player.stats.magic * 2;
+            return { damage, aoe: 3, freeze: 2, magical: true, message: 'unleashes a frost nova!' };
+        }
+    },
+    chain_lightning: {
+        name: 'Chain Lightning',
+        icon: '⚡',
+        description: 'Lightning that bounces between enemies',
+        manaCost: 38,
+        cooldown: 7,
+        class: 'mage',
+        effect: (game) => {
+            const damage = game.player.stats.magic * 3;
+            return { damage, chain: 4, magical: true, message: 'casts chain lightning!' };
+        }
+    },
+    arcane_power: {
+        name: 'Arcane Power',
+        icon: '💠',
+        description: 'Massively boost magic power for 4 turns',
+        manaCost: 40,
+        cooldown: 11,
+        class: 'mage',
+        effect: (game) => {
+            game.player.buffs.push({
+                name: 'Arcane Power',
+                duration: 4,
+                magMod: 2.5
+            });
+            return { message: 'channels arcane power!' };
+        }
+    },
+    blizzard: {
+        name: 'Blizzard',
+        icon: '🌨️',
+        description: 'Summon a blizzard dealing damage over time in large area',
+        manaCost: 45,
+        cooldown: 13,
+        class: 'mage',
+        effect: (game) => {
+            const damage = game.player.stats.magic * 2.5;
+            return { damage, aoe: 5, dot: 3, magical: true, message: 'summons a devastating blizzard!' };
         }
     }
 };
