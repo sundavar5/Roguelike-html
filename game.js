@@ -2381,6 +2381,283 @@ const SKILL_TEMPLATES = {
 };
 
 // ============================================================================
+// ENCHANTMENT SYSTEM
+// ============================================================================
+
+const ENCHANTMENT_TYPES = {
+    WEAPON: 'weapon',
+    ARMOR: 'armor',
+    ACCESSORY: 'accessory'
+};
+
+const ENCHANTMENT_TEMPLATES = {
+    // Weapon Enchantments
+    sharpness: {
+        name: 'Sharpness',
+        type: ENCHANTMENT_TYPES.WEAPON,
+        rarity: RARITY.COMMON,
+        icon: '🔪',
+        description: 'Increases weapon damage',
+        stats: { damage: 5 },
+        cost: 100,
+        materials: { 'iron_ore': 3 },
+        minLevel: 1
+    },
+    fiery: {
+        name: 'Fiery',
+        type: ENCHANTMENT_TYPES.WEAPON,
+        rarity: RARITY.UNCOMMON,
+        icon: '🔥',
+        description: 'Adds fire damage and burn chance',
+        stats: { damage: 8, magic: 3 },
+        effect: { burn: 0.15 },
+        cost: 250,
+        materials: { 'fire_essence': 2, 'ruby': 1 },
+        minLevel: 5
+    },
+    frost: {
+        name: 'Frost',
+        type: ENCHANTMENT_TYPES.WEAPON,
+        rarity: RARITY.UNCOMMON,
+        icon: '❄️',
+        description: 'Adds ice damage and slow chance',
+        stats: { damage: 7, magic: 4 },
+        effect: { slow: 0.2 },
+        cost: 250,
+        materials: { 'ice_shard': 2, 'sapphire': 1 },
+        minLevel: 5
+    },
+    lightning: {
+        name: 'Lightning',
+        type: ENCHANTMENT_TYPES.WEAPON,
+        rarity: RARITY.RARE,
+        icon: '⚡',
+        description: 'Adds lightning damage with chain effect',
+        stats: { damage: 10, magic: 6 },
+        effect: { chain: 2, stun: 0.1 },
+        cost: 500,
+        materials: { 'storm_crystal': 2, 'gold_ore': 5 },
+        minLevel: 10
+    },
+    vampiric: {
+        name: 'Vampiric',
+        type: ENCHANTMENT_TYPES.WEAPON,
+        rarity: RARITY.RARE,
+        icon: '🩸',
+        description: 'Lifesteal on hit',
+        stats: { damage: 6 },
+        effect: { lifesteal: 0.15 },
+        cost: 450,
+        materials: { 'blood_essence': 3, 'dark_gem': 1 },
+        minLevel: 8
+    },
+    critical: {
+        name: 'Critical',
+        type: ENCHANTMENT_TYPES.WEAPON,
+        rarity: RARITY.RARE,
+        icon: '💥',
+        description: 'Increased critical hit chance and damage',
+        stats: { critChance: 10, damage: 5 },
+        effect: { critMultiplier: 0.25 },
+        cost: 600,
+        materials: { 'pristine_gem': 2, 'mythril': 3 },
+        minLevel: 12
+    },
+    vorpal: {
+        name: 'Vorpal',
+        type: ENCHANTMENT_TYPES.WEAPON,
+        rarity: RARITY.EPIC,
+        icon: '💀',
+        description: 'Chance to instantly kill weaker enemies',
+        stats: { damage: 15, critChance: 8 },
+        effect: { execute: 0.05 },
+        cost: 1000,
+        materials: { 'void_essence': 2, 'death_crystal': 1, 'dragon_scale': 3 },
+        minLevel: 18
+    },
+    godslayer: {
+        name: 'Godslayer',
+        type: ENCHANTMENT_TYPES.WEAPON,
+        rarity: RARITY.LEGENDARY,
+        icon: '⚔️',
+        description: 'Massive damage bonus against bosses',
+        stats: { damage: 20, str: 10 },
+        effect: { bossDamage: 0.5 },
+        cost: 2500,
+        materials: { 'divine_essence': 3, 'celestial_ore': 5, 'ancient_relic': 1 },
+        minLevel: 25
+    },
+
+    // Armor Enchantments
+    protection: {
+        name: 'Protection',
+        type: ENCHANTMENT_TYPES.ARMOR,
+        rarity: RARITY.COMMON,
+        icon: '🛡️',
+        description: 'Increases defense',
+        stats: { defense: 5 },
+        cost: 100,
+        materials: { 'iron_ore': 3 },
+        minLevel: 1
+    },
+    fortitude: {
+        name: 'Fortitude',
+        type: ENCHANTMENT_TYPES.ARMOR,
+        rarity: RARITY.UNCOMMON,
+        icon: '💪',
+        description: 'Increases max HP',
+        stats: { defense: 3, hp: 25 },
+        cost: 200,
+        materials: { 'toughened_leather': 5, 'emerald': 1 },
+        minLevel: 4
+    },
+    reflection: {
+        name: 'Reflection',
+        type: ENCHANTMENT_TYPES.ARMOR,
+        rarity: RARITY.UNCOMMON,
+        icon: '🪞',
+        description: 'Reflects damage back to attacker',
+        stats: { defense: 4 },
+        effect: { thorns: 0.15 },
+        cost: 300,
+        materials: { 'mirror_shard': 3, 'silver_ore': 4 },
+        minLevel: 6
+    },
+    regeneration: {
+        name: 'Regeneration',
+        type: ENCHANTMENT_TYPES.ARMOR,
+        rarity: RARITY.RARE,
+        icon: '💚',
+        description: 'Regenerate HP over time',
+        stats: { defense: 5 },
+        effect: { regen: 2 },
+        cost: 500,
+        materials: { 'life_essence': 3, 'healing_herb': 10 },
+        minLevel: 10
+    },
+    warding: {
+        name: 'Warding',
+        type: ENCHANTMENT_TYPES.ARMOR,
+        rarity: RARITY.RARE,
+        icon: '✨',
+        description: 'Reduces magic damage taken',
+        stats: { defense: 6, magic: 5 },
+        effect: { magicResist: 0.2 },
+        cost: 550,
+        materials: { 'arcane_dust': 5, 'ward_stone': 2 },
+        minLevel: 11
+    },
+    agility: {
+        name: 'Agility',
+        type: ENCHANTMENT_TYPES.ARMOR,
+        rarity: RARITY.RARE,
+        icon: '🏃',
+        description: 'Increases dodge chance and agility',
+        stats: { agi: 8, defense: 3 },
+        effect: { dodgeBonus: 0.1 },
+        cost: 600,
+        materials: { 'wind_essence': 3, 'feather': 15 },
+        minLevel: 12
+    },
+    invulnerability: {
+        name: 'Invulnerability',
+        type: ENCHANTMENT_TYPES.ARMOR,
+        rarity: RARITY.EPIC,
+        icon: '🌟',
+        description: 'Chance to negate all damage from an attack',
+        stats: { defense: 15, hp: 40 },
+        effect: { negate: 0.08 },
+        cost: 1200,
+        materials: { 'adamantite': 5, 'guardian_crystal': 2, 'phoenix_feather': 1 },
+        minLevel: 20
+    },
+    immortal: {
+        name: 'Immortal',
+        type: ENCHANTMENT_TYPES.ARMOR,
+        rarity: RARITY.LEGENDARY,
+        icon: '👑',
+        description: 'Survive fatal damage once per combat',
+        stats: { defense: 20, hp: 75, regen: 3 },
+        effect: { resurrection: true },
+        cost: 3000,
+        materials: { 'immortal_essence': 2, 'god_tear': 1, 'eternal_crystal': 3 },
+        minLevel: 28
+    },
+
+    // Accessory Enchantments
+    fortune: {
+        name: 'Fortune',
+        type: ENCHANTMENT_TYPES.ACCESSORY,
+        rarity: RARITY.UNCOMMON,
+        icon: '💰',
+        description: 'Increases gold drops',
+        effect: { goldBonus: 0.25 },
+        cost: 200,
+        materials: { 'gold_ore': 10, 'lucky_coin': 3 },
+        minLevel: 3
+    },
+    wisdom: {
+        name: 'Wisdom',
+        type: ENCHANTMENT_TYPES.ACCESSORY,
+        rarity: RARITY.UNCOMMON,
+        icon: '📖',
+        description: 'Increases XP gain',
+        stats: { magic: 3 },
+        effect: { xpBonus: 0.2 },
+        cost: 250,
+        materials: { 'wisdom_scroll': 5, 'sage_herb': 8 },
+        minLevel: 4
+    },
+    swiftness: {
+        name: 'Swiftness',
+        type: ENCHANTMENT_TYPES.ACCESSORY,
+        rarity: RARITY.RARE,
+        icon: '💨',
+        description: 'Increases agility and movement',
+        stats: { agi: 10 },
+        effect: { actionSpeed: 0.15 },
+        cost: 400,
+        materials: { 'swift_essence': 3, 'quicksilver': 2 },
+        minLevel: 8
+    },
+    archmage: {
+        name: 'Archmage',
+        type: ENCHANTMENT_TYPES.ACCESSORY,
+        rarity: RARITY.RARE,
+        icon: '🔮',
+        description: 'Increases mana and magic power',
+        stats: { magic: 12, mana: 50 },
+        cost: 500,
+        materials: { 'mana_crystal': 5, 'arcane_tome': 1 },
+        minLevel: 10
+    },
+    berserker: {
+        name: 'Berserker',
+        type: ENCHANTMENT_TYPES.ACCESSORY,
+        rarity: RARITY.EPIC,
+        icon: '😡',
+        description: 'Deal more damage when low on HP',
+        stats: { str: 8, damage: 5 },
+        effect: { rage: true },
+        cost: 800,
+        materials: { 'rage_gem': 2, 'berserker_blood': 3, 'chaos_shard': 2 },
+        minLevel: 15
+    },
+    phoenix: {
+        name: 'Phoenix',
+        type: ENCHANTMENT_TYPES.ACCESSORY,
+        rarity: RARITY.LEGENDARY,
+        icon: '🔥',
+        description: 'Revive on death with 50% HP (once per day)',
+        stats: { hp: 50, defense: 10 },
+        effect: { revive: true },
+        cost: 2000,
+        materials: { 'phoenix_ash': 5, 'rebirth_stone': 1, 'eternal_flame': 2 },
+        minLevel: 22
+    }
+};
+
+// ============================================================================
 // CLASS DEFINITIONS
 // ============================================================================
 
@@ -2536,6 +2813,32 @@ class Player {
                         total.magic += item.stats[stat];
                     } else if (stat === 'crit') {
                         total.critChance += item.stats[stat];
+                    }
+                }
+            }
+
+            // Add enchantment bonuses
+            if (item && item.enchantment) {
+                const enchant = ENCHANTMENT_TEMPLATES[item.enchantment];
+                if (enchant && enchant.stats) {
+                    for (const stat in enchant.stats) {
+                        if (stat === 'hp') {
+                            equipHpBonus += enchant.stats[stat];
+                        } else if (stat === 'mana') {
+                            equipManaBonus += enchant.stats[stat];
+                        } else if (stat === 'str') {
+                            total.strength += enchant.stats[stat];
+                        } else if (stat === 'def' || stat === 'defense') {
+                            total.defense += enchant.stats[stat];
+                        } else if (stat === 'agi') {
+                            total.agility += enchant.stats[stat];
+                        } else if (stat === 'mag' || stat === 'magic') {
+                            total.magic += enchant.stats[stat];
+                        } else if (stat === 'crit' || stat === 'critChance') {
+                            total.critChance += enchant.stats[stat];
+                        } else if (stat === 'damage') {
+                            total.strength += enchant.stats[stat];
+                        }
                     }
                 }
             }
@@ -3374,6 +3677,7 @@ class Game {
         document.getElementById('rest-btn').addEventListener('click', () => this.rest());
         document.getElementById('search-btn').addEventListener('click', () => this.search());
         document.getElementById('skills-btn').addEventListener('click', () => this.openSkillsModal());
+        document.getElementById('enchant-btn').addEventListener('click', () => this.openEnchantmentModal());
 
         // Restart
         document.getElementById('restart-btn').addEventListener('click', () => {
@@ -3493,6 +3797,9 @@ class Game {
                 break;
             case 'r':
                 this.rest();
+                return;
+            case 'e':
+                this.openEnchantmentModal();
                 return;
             case ' ':
                 this.search();
@@ -6849,6 +7156,300 @@ class Game {
         }
 
         return damage;
+    }
+
+    // ========================================================================
+    // ENCHANTMENT SYSTEM
+    // ========================================================================
+
+    openEnchantmentModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal enchantment-modal';
+        modal.id = 'enchantment-modal';
+
+        const enchantableItems = this.player.inventory.filter(item =>
+            item.type === ITEM_TYPES.WEAPON ||
+            item.type === ITEM_TYPES.ARMOR ||
+            item.type === ITEM_TYPES.SHIELD ||
+            item.type === ITEM_TYPES.RING ||
+            item.type === ITEM_TYPES.AMULET
+        );
+
+        const equippedItems = Object.values(this.player.equipment).filter(item => item !== null);
+        const allEnchantable = [...enchantableItems, ...equippedItems];
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>✨ Enchantment Table</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="enchantment-container">
+                        <div class="enchantment-items">
+                            <h3>Select Item to Enchant</h3>
+                            <div id="enchantable-items-list" class="item-list">
+                                ${allEnchantable.length > 0 ? allEnchantable.map((item, idx) => `
+                                    <div class="enchantment-item" data-item-idx="${idx}">
+                                        <span class="item-icon">${item.icon}</span>
+                                        <span class="item-name">${item.name}</span>
+                                        ${item.enchantment ? `<span class="item-enchant">${ENCHANTMENT_TEMPLATES[item.enchantment]?.icon || '✨'} ${ENCHANTMENT_TEMPLATES[item.enchantment]?.name || 'Unknown'}</span>` : ''}
+                                        <span class="item-rarity ${item.rarity}">${item.rarity}</span>
+                                    </div>
+                                `).join('') : '<p class="no-items">No enchantable items available</p>'}
+                            </div>
+                        </div>
+                        <div class="enchantment-options">
+                            <h3>Available Enchantments</h3>
+                            <div id="enchantment-options-list" class="enchantment-list">
+                                <p class="select-prompt">Select an item to see available enchantments</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="enchantment-info">
+                        <p>💰 Gold: ${this.player.gold}</p>
+                        <p>📦 Materials in Inventory: ${this.player.inventory.filter(i => i.type === ITEM_TYPES.CONSUMABLE).length}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Close button
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // Item selection
+        const itemElements = modal.querySelectorAll('.enchantment-item');
+        itemElements.forEach((el, idx) => {
+            el.addEventListener('click', () => {
+                // Remove previous selection
+                itemElements.forEach(e => e.classList.remove('selected'));
+                el.classList.add('selected');
+
+                const item = allEnchantable[idx];
+                this.showEnchantmentOptions(item);
+            });
+        });
+    }
+
+    showEnchantmentOptions(item) {
+        const optionsList = document.getElementById('enchantment-options-list');
+        if (!optionsList) return;
+
+        const availableEnchantments = this.getAvailableEnchantments(item);
+
+        if (availableEnchantments.length === 0) {
+            optionsList.innerHTML = '<p class="no-enchantments">No enchantments available for this item</p>';
+            return;
+        }
+
+        optionsList.innerHTML = availableEnchantments.map(([id, enchant]) => {
+            const canAfford = this.player.gold >= enchant.cost;
+            const hasLevel = this.player.level >= enchant.minLevel;
+            const hasMaterials = this.checkMaterials(enchant.materials);
+            const canApply = canAfford && hasLevel && hasMaterials;
+
+            return `
+                <div class="enchantment-option ${canApply ? '' : 'disabled'}" data-enchant-id="${id}">
+                    <div class="enchant-header">
+                        <span class="enchant-icon">${enchant.icon}</span>
+                        <span class="enchant-name ${enchant.rarity}">${enchant.name}</span>
+                    </div>
+                    <p class="enchant-desc">${enchant.description}</p>
+                    <div class="enchant-stats">
+                        ${Object.entries(enchant.stats || {}).map(([stat, val]) =>
+                            `<span class="stat-bonus">+${val} ${stat}</span>`
+                        ).join(' ')}
+                        ${enchant.effect ? `<span class="effect-bonus">Special Effect</span>` : ''}
+                    </div>
+                    <div class="enchant-cost">
+                        <span class="${canAfford ? 'can-afford' : 'cannot-afford'}">💰 ${enchant.cost} gold</span>
+                        <span class="${hasLevel ? 'can-afford' : 'cannot-afford'}">⭐ Lvl ${enchant.minLevel}</span>
+                    </div>
+                    ${enchant.materials ? `<div class="enchant-materials">
+                        ${Object.entries(enchant.materials).map(([mat, qty]) =>
+                            `<span class="${this.countMaterial(mat) >= qty ? 'has-material' : 'needs-material'}">${mat}: ${this.countMaterial(mat)}/${qty}</span>`
+                        ).join(', ')}
+                    </div>` : ''}
+                    ${canApply ? '<button class="apply-enchant-btn">Apply Enchantment</button>' : '<p class="enchant-error">Requirements not met</p>'}
+                </div>
+            `;
+        }).join('');
+
+        // Add event listeners to apply buttons
+        optionsList.querySelectorAll('.apply-enchant-btn').forEach(btn => {
+            const optionEl = btn.closest('.enchantment-option');
+            const enchantId = optionEl.dataset.enchantId;
+
+            btn.addEventListener('click', () => {
+                this.applyEnchantment(item, enchantId);
+            });
+        });
+
+        // If item already has enchantment, add remove option
+        if (item.enchantment) {
+            const removeDiv = document.createElement('div');
+            removeDiv.className = 'enchantment-remove';
+            removeDiv.innerHTML = `
+                <h3>Current Enchantment</h3>
+                <p>This item is already enchanted with ${ENCHANTMENT_TEMPLATES[item.enchantment]?.name}</p>
+                <button class="remove-enchant-btn">Remove Enchantment (Free)</button>
+            `;
+            optionsList.prepend(removeDiv);
+
+            removeDiv.querySelector('.remove-enchant-btn').addEventListener('click', () => {
+                this.removeEnchantment(item);
+            });
+        }
+    }
+
+    getAvailableEnchantments(item) {
+        let enchantType;
+
+        if (item.type === ITEM_TYPES.WEAPON) {
+            enchantType = ENCHANTMENT_TYPES.WEAPON;
+        } else if (item.type === ITEM_TYPES.ARMOR || item.type === ITEM_TYPES.SHIELD) {
+            enchantType = ENCHANTMENT_TYPES.ARMOR;
+        } else if (item.type === ITEM_TYPES.RING || item.type === ITEM_TYPES.AMULET) {
+            enchantType = ENCHANTMENT_TYPES.ACCESSORY;
+        } else {
+            return [];
+        }
+
+        return Object.entries(ENCHANTMENT_TEMPLATES).filter(([id, enchant]) =>
+            enchant.type === enchantType
+        );
+    }
+
+    checkMaterials(materials) {
+        if (!materials) return true;
+
+        for (const [material, required] of Object.entries(materials)) {
+            if (this.countMaterial(material) < required) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    countMaterial(materialName) {
+        const item = this.player.inventory.find(i =>
+            i.name.toLowerCase().includes(materialName.replace('_', ' '))
+        );
+        return item ? (item.quantity || 1) : 0;
+    }
+
+    consumeMaterials(materials) {
+        if (!materials) return;
+
+        for (const [material, required] of Object.entries(materials)) {
+            const item = this.player.inventory.find(i =>
+                i.name.toLowerCase().includes(material.replace('_', ' '))
+            );
+
+            if (item) {
+                if (item.quantity) {
+                    item.quantity -= required;
+                    if (item.quantity <= 0) {
+                        const idx = this.player.inventory.indexOf(item);
+                        this.player.inventory.splice(idx, 1);
+                    }
+                } else {
+                    const idx = this.player.inventory.indexOf(item);
+                    this.player.inventory.splice(idx, 1);
+                }
+            }
+        }
+    }
+
+    applyEnchantment(item, enchantmentId) {
+        const enchant = ENCHANTMENT_TEMPLATES[enchantmentId];
+
+        if (!enchant) {
+            this.addMessage('Invalid enchantment!', 'error');
+            return;
+        }
+
+        // Check requirements
+        if (this.player.gold < enchant.cost) {
+            this.addMessage('Not enough gold!', 'error');
+            return;
+        }
+
+        if (this.player.level < enchant.minLevel) {
+            this.addMessage('Level too low!', 'error');
+            return;
+        }
+
+        if (!this.checkMaterials(enchant.materials)) {
+            this.addMessage('Missing required materials!', 'error');
+            return;
+        }
+
+        // Remove old enchantment if exists
+        if (item.enchantment) {
+            this.addMessage(`Replacing ${ENCHANTMENT_TEMPLATES[item.enchantment]?.name} enchantment...`, 'info');
+        }
+
+        // Apply enchantment
+        item.enchantment = enchantmentId;
+        this.player.gold -= enchant.cost;
+        this.consumeMaterials(enchant.materials);
+
+        this.addMessage(`✨ Successfully enchanted ${item.name} with ${enchant.name}!`, 'success');
+
+        // Refresh UI
+        this.updateUI();
+
+        // Close and reopen modal to refresh
+        const modal = document.getElementById('enchantment-modal');
+        if (modal) {
+            modal.remove();
+        }
+        this.openEnchantmentModal();
+    }
+
+    removeEnchantment(item) {
+        if (!item.enchantment) {
+            this.addMessage('Item has no enchantment!', 'error');
+            return;
+        }
+
+        const enchantName = ENCHANTMENT_TEMPLATES[item.enchantment]?.name || 'Unknown';
+        item.enchantment = null;
+
+        this.addMessage(`Removed ${enchantName} enchantment from ${item.name}`, 'info');
+
+        // Refresh UI
+        this.updateUI();
+
+        // Close and reopen modal to refresh
+        const modal = document.getElementById('enchantment-modal');
+        if (modal) {
+            modal.remove();
+        }
+        this.openEnchantmentModal();
+    }
+
+    getEnchantmentStats(item) {
+        if (!item || !item.enchantment) {
+            return {};
+        }
+
+        const enchant = ENCHANTMENT_TEMPLATES[item.enchantment];
+        return enchant ? (enchant.stats || {}) : {};
+    }
+
+    getEnchantmentEffects(item) {
+        if (!item || !item.enchantment) {
+            return {};
+        }
+
+        const enchant = ENCHANTMENT_TEMPLATES[item.enchantment];
+        return enchant ? (enchant.effect || {}) : {};
     }
 }
 
