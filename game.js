@@ -3577,7 +3577,54 @@ class Game {
         this.player.kills++;
         this.currentEnemy.hp = 0;
 
+        // Update quest progress
+        this.updateQuestProgress('kill', this.currentEnemy.type);
+        this.updateQuestProgress('kill_biome', this.currentBiome);
+
+        // Check achievements
+        this.checkAchievement('first_blood');
+        if (this.player.kills >= 100) this.checkAchievement('slayer');
+        if (this.currentEnemy.boss) this.checkAchievement('dragon_slayer');
+
+        // Update high scores
+        this.updateHighScores();
+
         this.endCombat();
+    }
+
+    // Helper method for non-combat enemy kills (AOE, etc.)
+    onEnemyKilled(enemy) {
+        if (!enemy || enemy.hp > 0) return;
+
+        // Gain XP and gold
+        const levels = this.player.gainXp(enemy.xp);
+        if (levels.length > 0) {
+            this.addMessage(`Level up! You are now level ${this.player.level}!`, 'success');
+        }
+
+        this.player.gold += enemy.gold;
+        this.player.score += enemy.gold;
+        this.player.kills++;
+
+        // Update quest progress
+        this.updateQuestProgress('kill', enemy.type);
+        this.updateQuestProgress('kill_biome', this.currentBiome);
+
+        // Check achievements
+        this.checkAchievement('first_blood');
+        if (this.player.kills >= 100) this.checkAchievement('slayer');
+        if (enemy.boss) this.checkAchievement('dragon_slayer');
+
+        // Update high scores
+        this.updateHighScores();
+
+        // Random loot drop
+        if (random(1, 100) > 70) {
+            const item = this.world.generateRandomItem();
+            item.x = enemy.x;
+            item.y = enemy.y;
+            this.world.items.push(item);
+        }
     }
 
     endCombat() {
@@ -5646,8 +5693,195 @@ class Game {
 
     enterDungeon(x, y) {
         this.addMessage('You enter a dark dungeon...', 'warning');
-        // TODO: Generate mini-dungeon instance
-        this.addMessage('Dungeon system coming soon! Prepare for challenging encounters!', 'info');
+
+        // Generate dungeon difficulty based on player level
+        const dungeonLevel = Math.max(1, this.player.level - 2 + random(-1, 2));
+
+        // Show dungeon entrance modal
+        this.showDungeonModal(x, y, dungeonLevel);
+    }
+
+    showDungeonModal(x, y, dungeonLevel) {
+        const modal = document.createElement('div');
+        modal.className = 'modal dungeon-modal';
+
+        const bossName = this.getBossForDungeon(dungeonLevel);
+        const rewards = this.calculateDungeonRewards(dungeonLevel);
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>🏰 Dungeon Entrance</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="dungeon-info">
+                        <p class="dungeon-level">Dungeon Level: ${dungeonLevel}</p>
+                        <p class="dungeon-desc">A dark presence looms within these ancient halls...</p>
+                        <p class="boss-warning">⚠️ Boss: ${bossName}</p>
+                    </div>
+                    <div class="dungeon-rewards">
+                        <h3>Potential Rewards:</h3>
+                        <ul>
+                            <li>💰 ${rewards.gold} Gold</li>
+                            <li>⭐ ${rewards.xp} Experience</li>
+                            <li>📦 ${rewards.items} Guaranteed Items</li>
+                            <li>✨ Chance for Legendary Loot</li>
+                        </ul>
+                    </div>
+                    <div class="dungeon-actions">
+                        <button class="dungeon-enter-btn">Enter Dungeon</button>
+                        <button class="dungeon-leave-btn">Leave</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelector('.close-btn').addEventListener('click', () => modal.remove());
+        modal.querySelector('.dungeon-leave-btn').addEventListener('click', () => modal.remove());
+
+        modal.querySelector('.dungeon-enter-btn').addEventListener('click', () => {
+            modal.remove();
+            this.startDungeonRun(x, y, dungeonLevel);
+        });
+    }
+
+    getBossForDungeon(level) {
+        const bosses = [
+            { minLevel: 1, name: 'Goblin King' },
+            { minLevel: 5, name: 'Ancient Dragon' },
+            { minLevel: 8, name: 'Demon Lord' },
+            { minLevel: 10, name: 'Lich King' },
+            { minLevel: 12, name: 'Stone Titan' },
+            { minLevel: 14, name: 'Phoenix Lord' },
+            { minLevel: 16, name: 'Kraken' },
+            { minLevel: 18, name: 'World Serpent' },
+            { minLevel: 20, name: 'Celestial Guardian' }
+        ];
+
+        for (let i = bosses.length - 1; i >= 0; i--) {
+            if (level >= bosses[i].minLevel) {
+                return bosses[i].name;
+            }
+        }
+        return bosses[0].name;
+    }
+
+    calculateDungeonRewards(level) {
+        return {
+            gold: 100 * level + random(50, 200),
+            xp: 150 * level,
+            items: Math.floor(level / 3) + 2
+        };
+    }
+
+    startDungeonRun(x, y, level) {
+        // Spawn multiple waves of enemies
+        const wavesCount = 2 + Math.floor(level / 3);
+        let currentWave = 0;
+
+        const spawnWave = () => {
+            currentWave++;
+
+            if (currentWave <= wavesCount) {
+                // Regular enemies
+                const enemyCount = 2 + random(1, 3);
+                this.addMessage(`Wave ${currentWave}/${wavesCount}: ${enemyCount} enemies approach!`, 'warning');
+
+                for (let i = 0; i < enemyCount; i++) {
+                    setTimeout(() => {
+                        this.spawnDungeonEnemy(x, y, level);
+                    }, i * 500);
+                }
+
+                // Check for next wave after delay
+                setTimeout(() => {
+                    if (this.player.hp > 0) {
+                        spawnWave();
+                    }
+                }, 5000);
+            } else {
+                // Boss wave
+                setTimeout(() => {
+                    if (this.player.hp > 0) {
+                        this.spawnDungeonBoss(x, y, level);
+                    }
+                }, 3000);
+            }
+        };
+
+        this.addMessage('The dungeon awakens...', 'combat');
+        setTimeout(() => spawnWave(), 2000);
+    }
+
+    spawnDungeonEnemy(x, y, level) {
+        // Get appropriate enemies for level
+        const validEnemies = Object.entries(ENEMY_TEMPLATES).filter(([key, template]) =>
+            !template.boss && template.level <= level + 2 && template.level >= level - 1
+        );
+
+        if (validEnemies.length === 0) return;
+
+        const [key, template] = randomChoice(validEnemies);
+        const enemy = new Enemy(template, level);
+
+        // Spawn near dungeon entrance
+        const offsetX = random(-3, 3);
+        const offsetY = random(-3, 3);
+        enemy.x = x + offsetX;
+        enemy.y = y + offsetY;
+
+        // Make sure spawn is valid
+        if (this.world.isWalkable(enemy.x, enemy.y) && !this.world.getEnemyAt(enemy.x, enemy.y)) {
+            this.world.enemies.push(enemy);
+            this.addMessage(`${enemy.name} appears!`, 'combat');
+            this.render();
+        }
+    }
+
+    spawnDungeonBoss(x, y, level) {
+        this.addMessage('💀 The boss has arrived! 💀', 'combat');
+
+        // Get appropriate boss for level
+        const validBosses = Object.entries(ENEMY_TEMPLATES).filter(([key, template]) =>
+            template.boss && template.level <= level + 5
+        );
+
+        if (validBosses.length === 0) {
+            // Fallback to dragon
+            const boss = new Enemy(ENEMY_TEMPLATES.dragon, level + 2);
+            boss.x = x;
+            boss.y = y;
+            this.world.enemies.push(boss);
+            this.startCombat(boss);
+            return;
+        }
+
+        const [key, template] = randomChoice(validBosses);
+        const boss = new Enemy(template, level + 2);
+        boss.x = x;
+        boss.y = y;
+
+        // Boss buffs
+        boss.hp = Math.floor(boss.hp * 1.5);
+        boss.maxHp = boss.hp;
+        boss.damage = Math.floor(boss.damage * 1.2);
+
+        this.world.enemies.push(boss);
+        this.addMessage(`${boss.name} emerges from the depths!`, 'combat');
+
+        // Give player a moment to prepare
+        setTimeout(() => {
+            if (this.player.hp > 0) {
+                this.startCombat(boss);
+            }
+        }, 2000);
+
+        // Grant dungeon rewards when boss is defeated
+        this.dungeonBoss = boss;
+        this.dungeonRewards = this.calculateDungeonRewards(level);
     }
 
     exploreCave(x, y) {
