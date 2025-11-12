@@ -1744,28 +1744,73 @@ class Game {
     startGame() {
         this.player = new Player(this.selectedClass);
         this.messageLog = [];
+        this.initializeGameSystems();
 
-        this.generateDungeon();
+        this.generateWorld();
 
         document.getElementById('title-screen').classList.remove('active');
         document.getElementById('game-screen').classList.add('active');
 
         this.state = 'playing';
 
-        this.addMessage('Welcome to the Dungeons of Eldoria!', 'info');
-        this.addMessage('Use arrow keys or WASD to move. Press R to rest.', 'info');
+        this.addMessage('⚔️ Welcome to Chronicles of Eldoria! ⚔️', 'success');
+        this.addMessage('You have been summoned to this world as a hero...', 'info');
+        this.addMessage('Use WASD or Arrow Keys to move. Press R to rest, I for inventory.', 'info');
+        this.addMessage('Visit towns to trade, accept quests, and rest at inns!', 'warning');
 
         this.updateUI();
         this.render();
     }
 
-    generateDungeon() {
-        this.world = new World(WORLD_WIDTH, WORLD_HEIGHT, this.floor);
+    initializeGameSystems() {
+        // Initialize all game systems
+        this.activeQuests = [];
+        this.completedQuests = [];
+        this.reputation = {
+            starter_village: 0,
+            merchants_guild: 0,
+            adventurers_guild: 0,
+            mages_circle: 0
+        };
+        this.timeOfDay = 'day'; // day, dusk, night, dawn
+        this.weather = 'clear'; // clear, rain, storm, snow, fog
+        this.dayCount = 1;
+        this.companion = null;
+        this.randomEventCooldown = 0;
+
+        // Initialize quests, crafting, cooking, and achievements
+        this.initializeQuests();
+        this.initializeCrafting();
+        this.initializeCooking();
+        this.initializeAchievements();
+    }
+
+    generateWorld() {
+        this.world = new World(WORLD_WIDTH, WORLD_HEIGHT);
         const startPos = this.world.getStartPosition();
         this.player.x = startPos.x;
         this.player.y = startPos.y;
 
-        this.addMessage(`You descend to floor ${this.floor}...`, 'warning');
+        this.addMessage('You awaken in the Starter Village...', 'success');
+        this.updateCurrentBiome();
+    }
+
+    updateCurrentBiome() {
+        const biome = this.world.getBiomeAt(this.player.x, this.player.y);
+        this.currentBiome = biome;
+
+        const biomeNames = {
+            [BIOME_TYPES.PLAINS]: 'Plains',
+            [BIOME_TYPES.FOREST]: 'Forest',
+            [BIOME_TYPES.MOUNTAINS]: 'Mountains',
+            [BIOME_TYPES.DESERT]: 'Desert',
+            [BIOME_TYPES.DARK_FOREST]: 'Dark Forest',
+            [BIOME_TYPES.SWAMP]: 'Swamp',
+            [BIOME_TYPES.TUNDRA]: 'Tundra'
+        };
+
+        const biomeName = biomeNames[biome] || 'Unknown';
+        document.getElementById('biome-name').textContent = biomeName;
     }
 
     handleKeyPress(e) {
@@ -1820,15 +1865,17 @@ class Game {
             return;
         }
 
-        // Check for stairs
-        if (this.world.tiles[newY][newX] === TILE_TYPES.STAIRS_DOWN) {
-            this.descendStairs();
+        // Check for town
+        const town = this.world.getTownAt(newX, newY);
+        if (town) {
+            this.enterTown(town);
             return;
         }
 
-        // Check for chest
-        if (this.world.tiles[newY][newX] === TILE_TYPES.CHEST) {
-            this.openChest(newX, newY);
+        // Check for dungeon entrance
+        if (this.world.tiles[newY][newX] === TILE_TYPES.DUNGEON_ENTRANCE) {
+            this.enterDungeon(newX, newY);
+            return;
         }
 
         // Check for shrine
@@ -1836,9 +1883,14 @@ class Game {
             this.useShrine(newX, newY);
         }
 
-        // Check for treasure room
-        if (this.world.tiles[newY][newX] === TILE_TYPES.TREASURE) {
-            this.openTreasureRoom(newX, newY);
+        // Check for cave
+        if (this.world.tiles[newY][newX] === TILE_TYPES.CAVE) {
+            this.exploreCave(newX, newY);
+        }
+
+        // Check for ruins
+        if (this.world.tiles[newY][newX] === TILE_TYPES.RUINS) {
+            this.exploreRuins(newX, newY);
         }
 
         // Check for item
@@ -1851,12 +1903,21 @@ class Game {
         this.player.x = newX;
         this.player.y = newY;
 
+        // Update biome
+        this.updateCurrentBiome();
+
+        // Check for random events
+        this.checkRandomEvent();
+
         // Enemy turn
         this.enemyTurn();
 
         // Update cooldowns and buffs
         this.player.updateCooldowns();
         this.player.updateBuffs();
+
+        // Update time and weather
+        this.updateTimeAndWeather();
 
         this.updateUI();
         this.render();
@@ -2596,20 +2657,35 @@ class Game {
                 let symbol = '';
 
                 switch(tile) {
-                    case TILE_TYPES.FLOOR:
-                        color = '#4a4a4a';
+                    case TILE_TYPES.GRASS:
+                        color = '#4a7c2f';
+                        if (random(1, 10) > 7) symbol = '🌿';
                         break;
-                    case TILE_TYPES.WALL:
-                        color = '#8b7355';
-                        symbol = '#';
+                    case TILE_TYPES.WATER:
+                        color = '#2b5f9e';
+                        symbol = '💧';
                         break;
-                    case TILE_TYPES.STAIRS_DOWN:
-                        color = '#4a4a4a';
-                        symbol = '>';
+                    case TILE_TYPES.TREE:
+                        color = '#2d5016';
+                        symbol = '🌲';
                         break;
-                    case TILE_TYPES.CHEST:
-                        color = '#4a4a4a';
-                        symbol = '📦';
+                    case TILE_TYPES.MOUNTAIN:
+                        color = '#6b6b6b';
+                        symbol = '⛰️';
+                        break;
+                    case TILE_TYPES.SAND:
+                        color = '#daa520';
+                        break;
+                    case TILE_TYPES.STONE:
+                        color = '#808080';
+                        break;
+                    case TILE_TYPES.TOWN:
+                        color = '#8b4513';
+                        symbol = '🏘️';
+                        break;
+                    case TILE_TYPES.SHOP:
+                        color = '#cd853f';
+                        symbol = '🏪';
                         break;
                     case TILE_TYPES.SHRINE:
                         color = '#6a5acd';
@@ -2618,6 +2694,28 @@ class Game {
                     case TILE_TYPES.TREASURE:
                         color = '#ffd700';
                         symbol = '💎';
+                        break;
+                    case TILE_TYPES.DUNGEON_ENTRANCE:
+                        color = '#2f2f2f';
+                        symbol = '🚪';
+                        break;
+                    case TILE_TYPES.ROAD:
+                        color = '#8b7355';
+                        break;
+                    case TILE_TYPES.BRIDGE:
+                        color = '#a0522d';
+                        symbol = '🌉';
+                        break;
+                    case TILE_TYPES.CAVE:
+                        color = '#3d3d3d';
+                        symbol = '🕳️';
+                        break;
+                    case TILE_TYPES.RUINS:
+                        color = '#a9a9a9';
+                        symbol = '🏛️';
+                        break;
+                    default:
+                        color = '#1a1a1a';
                         break;
                 }
 
@@ -2715,6 +2813,1549 @@ class Game {
             this.ctx.fillText(text.text, screenX, screenY);
             this.ctx.restore();
         }
+    }
+
+    // ========================================================================
+    // TOWN & NPC SYSTEM
+    // ========================================================================
+
+    enterTown(town) {
+        this.addMessage(`Welcome to ${town.name}!`, 'success');
+        this.showTownMenu(town);
+    }
+
+    showTownMenu(town) {
+        const modal = document.createElement('div');
+        modal.className = 'modal town-modal';
+        modal.innerHTML = `
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h2>${town.name}</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="town-description">
+                        <p>${this.getTownDescription(town)}</p>
+                    </div>
+                    <div class="town-actions">
+                        ${town.hasShop ? '<button class="action-btn large" data-action="shop">🏪 Visit Shop</button>' : ''}
+                        ${town.hasInn ? '<button class="action-btn large" data-action="inn">🏨 Rest at Inn (50 gold)</button>' : ''}
+                        <button class="action-btn large" data-action="quests">📜 Quest Board</button>
+                        <button class="action-btn large" data-action="guild">⚔️ Adventurer's Guild</button>
+                        <button class="action-btn large" data-action="npcs">💬 Talk to NPCs</button>
+                        <button class="action-btn large" data-action="craft">🔨 Crafting Station</button>
+                        <button class="action-btn large" data-action="cook">🍖 Cooking Pot</button>
+                        <button class="action-btn large" data-action="leave">🚪 Leave Town</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        modal.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const action = btn.dataset.action;
+                modal.remove();
+
+                switch(action) {
+                    case 'shop':
+                        this.openShop(town);
+                        break;
+                    case 'inn':
+                        this.restAtInn();
+                        break;
+                    case 'quests':
+                        this.showQuestBoard(town);
+                        break;
+                    case 'guild':
+                        this.showGuild(town);
+                        break;
+                    case 'npcs':
+                        this.talkToNPCs(town);
+                        break;
+                    case 'craft':
+                        this.openCraftingStation();
+                        break;
+                    case 'cook':
+                        this.openCookingPot();
+                        break;
+                    case 'leave':
+                        // Just close modal
+                        break;
+                }
+            });
+        });
+    }
+
+    getTownDescription(town) {
+        const descriptions = {
+            'starting': 'A peaceful village where heroes are summoned. The locals are friendly and welcoming.',
+            [BIOME_TYPES.PLAINS]: 'A thriving settlement surrounded by fertile farmland.',
+            [BIOME_TYPES.FOREST]: 'A town built among ancient trees, home to skilled woodworkers and rangers.',
+            [BIOME_TYPES.MOUNTAINS]: 'A hardy mountain settlement known for its miners and smiths.',
+            [BIOME_TYPES.DESERT]: 'An oasis town, a refuge in the endless sands.',
+            [BIOME_TYPES.DARK_FOREST]: 'A mysterious village shrouded in shadows, home to dark mages and necromancers.'
+        };
+        return descriptions[town.type] || 'A settlement in the wilderness.';
+    }
+
+    restAtInn() {
+        if (this.player.gold >= 50) {
+            this.player.gold -= 50;
+            this.player.hp = this.player.maxHp;
+            this.player.mana = this.player.maxMana;
+            this.player.buffs = [];
+            this.addMessage('You rest at the inn and feel fully refreshed!', 'success');
+            this.advanceTime();
+        } else {
+            this.addMessage('You need 50 gold to rest at the inn.', 'warning');
+        }
+        this.updateUI();
+    }
+
+    // ========================================================================
+    // SHOP SYSTEM
+    // ========================================================================
+
+    openShop(town) {
+        const shopItems = this.generateShopInventory(town);
+
+        const modal = document.createElement('div');
+        modal.className = 'modal shop-modal';
+        modal.innerHTML = `
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h2>🏪 ${town.name} - General Store</h2>
+                    <div class="player-gold">Your Gold: <span class="gold-amount">${this.player.gold}</span></div>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="shop-tabs">
+                        <button class="shop-tab active" data-tab="buy">Buy</button>
+                        <button class="shop-tab" data-tab="sell">Sell</button>
+                    </div>
+                    <div class="shop-content">
+                        <div class="shop-panel buy-panel active">
+                            <div class="shop-items" id="shop-buy-items"></div>
+                        </div>
+                        <div class="shop-panel sell-panel">
+                            <div class="shop-items" id="shop-sell-items"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Populate buy items
+        const buyPanel = modal.querySelector('#shop-buy-items');
+        shopItems.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `shop-item ${item.rarity}`;
+            itemDiv.innerHTML = `
+                <div class="item-icon">${item.icon}</div>
+                <div class="item-info">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">${item.value} gold</div>
+                </div>
+                <button class="buy-btn" data-item="${item.id}">Buy</button>
+            `;
+            buyPanel.appendChild(itemDiv);
+
+            itemDiv.querySelector('.buy-btn').addEventListener('click', () => {
+                this.buyItem(item, modal);
+            });
+        });
+
+        // Populate sell items
+        const sellPanel = modal.querySelector('#shop-sell-items');
+        this.player.inventory.forEach((item, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `shop-item ${item.rarity}`;
+            const sellPrice = Math.floor(item.value * 0.5);
+            itemDiv.innerHTML = `
+                <div class="item-icon">${item.icon}</div>
+                <div class="item-info">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">${sellPrice} gold</div>
+                </div>
+                <button class="sell-btn" data-index="${index}">Sell</button>
+            `;
+            sellPanel.appendChild(itemDiv);
+
+            itemDiv.querySelector('.sell-btn').addEventListener('click', () => {
+                this.sellItem(index, sellPrice, modal);
+            });
+        });
+
+        // Tab switching
+        modal.querySelectorAll('.shop-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                modal.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+                modal.querySelectorAll('.shop-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                modal.querySelector(`.${tab.dataset.tab}-panel`).classList.add('active');
+            });
+        });
+
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+
+    generateShopInventory(town) {
+        const items = [];
+        let id = 0;
+
+        // Always have potions
+        items.push({ ...ITEM_TEMPLATES.health_potion, id: id++ });
+        items.push({ ...ITEM_TEMPLATES.health_potion, id: id++ });
+        items.push({ ...ITEM_TEMPLATES.greater_health_potion, id: id++ });
+        items.push({ ...ITEM_TEMPLATES.mana_potion, id: id++ });
+
+        // Random equipment based on town type
+        const equipmentPool = Object.values(ITEM_TEMPLATES).filter(item =>
+            item.type === ITEM_TYPES.WEAPON ||
+            item.type === ITEM_TYPES.ARMOR ||
+            item.type === ITEM_TYPES.SHIELD
+        );
+
+        for (let i = 0; i < 5; i++) {
+            const item = { ...randomChoice(equipmentPool), id: id++ };
+            items.push(item);
+        }
+
+        // Add some accessories
+        items.push({ ...ITEM_TEMPLATES.ring_of_strength, id: id++ });
+        items.push({ ...ITEM_TEMPLATES.amulet_of_health, id: id++ });
+
+        return items;
+    }
+
+    buyItem(item, modal) {
+        if (this.player.gold >= item.value) {
+            if (this.player.inventory.length < this.player.maxInventorySize) {
+                this.player.gold -= item.value;
+                const newItem = { ...item };
+                delete newItem.id;
+                this.player.addItem(newItem);
+                this.addMessage(`Purchased ${item.name} for ${item.value} gold!`, 'success');
+                modal.querySelector('.gold-amount').textContent = this.player.gold;
+                this.updateUI();
+            } else {
+                this.addMessage('Inventory full!', 'warning');
+            }
+        } else {
+            this.addMessage('Not enough gold!', 'warning');
+        }
+    }
+
+    sellItem(index, price, modal) {
+        const item = this.player.inventory[index];
+        if (item) {
+            this.player.inventory.splice(index, 1);
+            this.player.gold += price;
+            this.addMessage(`Sold ${item.name} for ${price} gold!`, 'success');
+            modal.remove();
+            this.updateUI();
+        }
+    }
+
+    // ========================================================================
+    // QUEST SYSTEM
+    // ========================================================================
+
+    initializeQuests() {
+        this.allQuests = [
+            {
+                id: 'slime_slayer',
+                name: 'Slime Slayer',
+                description: 'Defeat 10 slimes in the plains.',
+                type: 'kill',
+                target: 'slime',
+                required: 10,
+                current: 0,
+                rewards: { xp: 100, gold: 50, item: 'iron_sword' },
+                repeatable: false
+            },
+            {
+                id: 'forest_protector',
+                name: 'Forest Protector',
+                description: 'Clear the forest of 15 hostile creatures.',
+                type: 'kill_biome',
+                biome: BIOME_TYPES.FOREST,
+                required: 15,
+                current: 0,
+                rewards: { xp: 200, gold: 100, reputation: 50 },
+                repeatable: false
+            },
+            {
+                id: 'treasure_hunter',
+                name: 'Treasure Hunter',
+                description: 'Find and open 5 treasure chests.',
+                type: 'collect',
+                target: 'chest',
+                required: 5,
+                current: 0,
+                rewards: { xp: 150, gold: 200 },
+                repeatable: true
+            },
+            {
+                id: 'mountain_expedition',
+                name: 'Mountain Expedition',
+                description: 'Explore 3 caves in the mountains.',
+                type: 'explore',
+                target: 'cave',
+                required: 3,
+                current: 0,
+                rewards: { xp: 250, gold: 150, item: 'stone_golem' },
+                repeatable: false
+            },
+            {
+                id: 'dark_forest_challenge',
+                name: 'Dark Forest Challenge',
+                description: 'Survive and defeat the Dark Knight in the Dark Forest.',
+                type: 'boss',
+                target: 'dark_knight',
+                required: 1,
+                current: 0,
+                rewards: { xp: 500, gold: 300, item: 'dragon_slayer' },
+                repeatable: false
+            },
+            {
+                id: 'herb_gathering',
+                name: 'Herb Gathering',
+                description: 'Collect 20 herbs from the plains.',
+                type: 'gather',
+                target: 'herb',
+                required: 20,
+                current: 0,
+                rewards: { xp: 75, gold: 30 },
+                repeatable: true
+            },
+            {
+                id: 'ancient_ruins',
+                name: 'Ancient Ruins Explorer',
+                description: 'Investigate all ruins in the desert.',
+                type: 'explore',
+                target: 'ruins',
+                required: 3,
+                current: 0,
+                rewards: { xp: 300, gold: 250, item: 'phoenix_pendant' },
+                repeatable: false
+            },
+            {
+                id: 'master_craftsman',
+                name: 'Master Craftsman',
+                description: 'Craft 10 different items.',
+                type: 'craft',
+                required: 10,
+                current: 0,
+                rewards: { xp: 200, gold: 100 },
+                repeatable: false
+            }
+        ];
+
+        this.quests = [...this.allQuests];
+    }
+
+    showQuestBoard(town) {
+        const modal = document.createElement('div');
+        modal.className = 'modal quest-modal';
+
+        const availableQuests = this.quests.filter(q => !this.activeQuests.includes(q) && !this.completedQuests.includes(q.id));
+
+        modal.innerHTML = `
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h2>📜 Quest Board</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="quest-tabs">
+                        <button class="quest-tab active" data-tab="available">Available (${availableQuests.length})</button>
+                        <button class="quest-tab" data-tab="active">Active (${this.activeQuests.length})</button>
+                        <button class="quest-tab" data-tab="completed">Completed (${this.completedQuests.length})</button>
+                    </div>
+                    <div class="quest-content">
+                        <div class="quest-panel available-panel active" id="available-quests"></div>
+                        <div class="quest-panel active-panel" id="active-quests"></div>
+                        <div class="quest-panel completed-panel" id="completed-quests"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Populate available quests
+        const availablePanel = modal.querySelector('#available-quests');
+        availableQuests.forEach(quest => {
+            const questDiv = this.createQuestElement(quest, 'accept');
+            availablePanel.appendChild(questDiv);
+        });
+
+        // Populate active quests
+        const activePanel = modal.querySelector('#active-quests');
+        this.activeQuests.forEach(quest => {
+            const questDiv = this.createQuestElement(quest, 'view');
+            activePanel.appendChild(questDiv);
+        });
+
+        // Populate completed quests
+        const completedPanel = modal.querySelector('#completed-quests');
+        this.completedQuests.forEach(questId => {
+            const quest = this.allQuests.find(q => q.id === questId);
+            if (quest) {
+                const questDiv = this.createQuestElement(quest, 'completed');
+                completedPanel.appendChild(questDiv);
+            }
+        });
+
+        // Tab switching
+        modal.querySelectorAll('.quest-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                modal.querySelectorAll('.quest-tab').forEach(t => t.classList.remove('active'));
+                modal.querySelectorAll('.quest-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                modal.querySelector(`.${tab.dataset.tab}-panel`).classList.add('active');
+            });
+        });
+
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+
+    createQuestElement(quest, action) {
+        const div = document.createElement('div');
+        div.className = 'quest-item';
+
+        const progress = action === 'view' ? `<div class="quest-progress">${quest.current}/${quest.required}</div>` : '';
+        const rewardText = this.formatQuestRewards(quest.rewards);
+
+        div.innerHTML = `
+            <div class="quest-header">
+                <h3>${quest.name}</h3>
+                ${quest.repeatable ? '<span class="repeatable-tag">Repeatable</span>' : ''}
+            </div>
+            <p class="quest-description">${quest.description}</p>
+            ${progress}
+            <div class="quest-rewards">
+                <strong>Rewards:</strong> ${rewardText}
+            </div>
+            ${action === 'accept' ? '<button class="accept-quest-btn">Accept Quest</button>' : ''}
+            ${action === 'view' && quest.current >= quest.required ? '<button class="complete-quest-btn">Complete Quest</button>' : ''}
+        `;
+
+        if (action === 'accept') {
+            div.querySelector('.accept-quest-btn').addEventListener('click', () => {
+                this.acceptQuest(quest);
+                div.remove();
+            });
+        } else if (action === 'view' && quest.current >= quest.required) {
+            div.querySelector('.complete-quest-btn').addEventListener('click', () => {
+                this.completeQuest(quest);
+                div.remove();
+            });
+        }
+
+        return div;
+    }
+
+    formatQuestRewards(rewards) {
+        const parts = [];
+        if (rewards.xp) parts.push(`${rewards.xp} XP`);
+        if (rewards.gold) parts.push(`${rewards.gold} Gold`);
+        if (rewards.item) parts.push(`Item: ${rewards.item}`);
+        if (rewards.reputation) parts.push(`+${rewards.reputation} Reputation`);
+        return parts.join(', ');
+    }
+
+    acceptQuest(quest) {
+        this.activeQuests.push(quest);
+        this.addMessage(`Quest accepted: ${quest.name}`, 'success');
+    }
+
+    completeQuest(quest) {
+        const index = this.activeQuests.indexOf(quest);
+        if (index > -1) {
+            this.activeQuests.splice(index, 1);
+        }
+
+        // Give rewards
+        if (quest.rewards.xp) {
+            const levels = this.player.gainXp(quest.rewards.xp);
+            this.addMessage(`+${quest.rewards.xp} XP`, 'success');
+        }
+        if (quest.rewards.gold) {
+            this.player.gold += quest.rewards.gold;
+            this.addMessage(`+${quest.rewards.gold} Gold`, 'success');
+        }
+        if (quest.rewards.item) {
+            const item = ITEM_TEMPLATES[quest.rewards.item];
+            if (item) {
+                this.player.addItem({...item});
+                this.addMessage(`Received: ${item.name}!`, 'success');
+            }
+        }
+        if (quest.rewards.reputation) {
+            this.reputation.starter_village += quest.rewards.reputation;
+        }
+
+        if (!quest.repeatable) {
+            this.completedQuests.push(quest.id);
+        } else {
+            // Reset for repeatable quests
+            quest.current = 0;
+        }
+
+        this.addMessage(`Quest completed: ${quest.name}!`, 'success');
+        this.checkAchievement('quest_completer');
+        this.updateUI();
+    }
+
+    updateQuestProgress(type, target, amount = 1) {
+        for (const quest of this.activeQuests) {
+            if (quest.type === type) {
+                if (!target || quest.target === target || quest.biome === target) {
+                    quest.current += amount;
+                    if (quest.current >= quest.required) {
+                        this.addMessage(`Quest ready to complete: ${quest.name}!`, 'warning');
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // CRAFTING SYSTEM
+    // ========================================================================
+
+    initializeCrafting() {
+        this.craftingRecipes = [
+            {
+                id: 'healing_salve',
+                name: 'Healing Salve',
+                result: { ...ITEM_TEMPLATES.health_potion },
+                ingredients: [
+                    { name: 'Herb', quantity: 3, icon: '🌿' },
+                    { name: 'Water', quantity: 1, icon: '💧' }
+                ],
+                category: 'alchemy',
+                level: 1
+            },
+            {
+                id: 'iron_sword_craft',
+                name: 'Iron Sword',
+                result: { ...ITEM_TEMPLATES.iron_sword },
+                ingredients: [
+                    { name: 'Iron Ore', quantity: 5, icon: '⛏️' },
+                    { name: 'Wood', quantity: 2, icon: '🪵' }
+                ],
+                category: 'smithing',
+                level: 2
+            },
+            {
+                id: 'leather_armor_craft',
+                name: 'Leather Armor',
+                result: { ...ITEM_TEMPLATES.leather_armor },
+                ingredients: [
+                    { name: 'Leather', quantity: 8, icon: '🦴' },
+                    { name: 'Thread', quantity: 5, icon: '🧵' }
+                ],
+                category: 'leatherworking',
+                level: 1
+            },
+            {
+                id: 'mana_crystal',
+                name: 'Mana Crystal',
+                result: { ...ITEM_TEMPLATES.mana_potion },
+                ingredients: [
+                    { name: 'Crystal Shard', quantity: 2, icon: '💎' },
+                    { name: 'Magic Essence', quantity: 3, icon: '✨' }
+                ],
+                category: 'alchemy',
+                level: 3
+            },
+            {
+                id: 'steel_greatsword_craft',
+                name: 'Steel Greatsword',
+                result: { ...ITEM_TEMPLATES.steel_greatsword },
+                ingredients: [
+                    { name: 'Steel Ingot', quantity: 10, icon: '⚙️' },
+                    { name: 'Leather Grip', quantity: 3, icon: '🦴' },
+                    { name: 'Gem', quantity: 1, icon: '💎' }
+                ],
+                category: 'smithing',
+                level: 5
+            }
+        ];
+
+        this.knownRecipes = ['healing_salve', 'iron_sword_craft', 'leather_armor_craft'];
+        this.craftedItems = [];
+    }
+
+    openCraftingStation() {
+        const modal = document.createElement('div');
+        modal.className = 'modal crafting-modal';
+
+        modal.innerHTML = `
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h2>🔨 Crafting Station</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="crafting-categories">
+                        <button class="category-btn active" data-category="all">All</button>
+                        <button class="category-btn" data-category="smithing">Smithing</button>
+                        <button class="category-btn" data-category="alchemy">Alchemy</button>
+                        <button class="category-btn" data-category="leatherworking">Leatherworking</button>
+                    </div>
+                    <div class="crafting-recipes" id="crafting-recipes"></div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        this.displayCraftingRecipes(modal, 'all');
+
+        modal.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                modal.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.displayCraftingRecipes(modal, btn.dataset.category);
+            });
+        });
+
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+
+    displayCraftingRecipes(modal, category) {
+        const recipesDiv = modal.querySelector('#crafting-recipes');
+        recipesDiv.innerHTML = '';
+
+        const recipes = this.craftingRecipes.filter(r =>
+            this.knownRecipes.includes(r.id) && (category === 'all' || r.category === category)
+        );
+
+        recipes.forEach(recipe => {
+            const div = document.createElement('div');
+            div.className = 'recipe-item';
+
+            const ingredientsHtml = recipe.ingredients.map(ing => {
+                const hasEnough = this.hasIngredient(ing.name, ing.quantity);
+                return `<div class="ingredient ${hasEnough ? 'has' : 'missing'}">
+                    ${ing.icon} ${ing.name} (${ing.quantity})
+                </div>`;
+            }).join('');
+
+            const canCraft = recipe.ingredients.every(ing => this.hasIngredient(ing.name, ing.quantity));
+
+            div.innerHTML = `
+                <div class="recipe-result">
+                    <div class="result-icon">${recipe.result.icon}</div>
+                    <div class="result-name">${recipe.name}</div>
+                </div>
+                <div class="recipe-ingredients">
+                    ${ingredientsHtml}
+                </div>
+                <button class="craft-btn" ${!canCraft ? 'disabled' : ''}>Craft</button>
+            `;
+
+            if (canCraft) {
+                div.querySelector('.craft-btn').addEventListener('click', () => {
+                    this.craftItem(recipe);
+                    this.displayCraftingRecipes(modal, category);
+                });
+            }
+
+            recipesDiv.appendChild(div);
+        });
+    }
+
+    hasIngredient(name, quantity) {
+        // For now, simulate having ingredients based on player level
+        return this.player.level >= Math.floor(quantity / 2);
+    }
+
+    craftItem(recipe) {
+        // Remove ingredients (simulated for now)
+        // Add result
+        if (this.player.addItem({...recipe.result})) {
+            this.addMessage(`Crafted ${recipe.name}!`, 'success');
+            this.craftedItems.push(recipe.id);
+            this.updateQuestProgress('craft', null, 1);
+            this.checkAchievement('master_crafter');
+            this.updateUI();
+        } else {
+            this.addMessage('Inventory full!', 'warning');
+        }
+    }
+
+    // ========================================================================
+    // COOKING SYSTEM
+    // ========================================================================
+
+    initializeCooking() {
+        this.cookingRecipes = [
+            {
+                id: 'grilled_meat',
+                name: 'Grilled Meat',
+                result: { name: 'Grilled Meat', icon: '🍖', type: 'food', effect: { heal: 40, buff_str: 2, duration: 5 }, stackable: true },
+                ingredients: [
+                    { name: 'Raw Meat', quantity: 1, icon: '🥩' }
+                ]
+            },
+            {
+                id: 'herb_soup',
+                name: 'Herb Soup',
+                result: { name: 'Herb Soup', icon: '🍲', type: 'food', effect: { heal: 30, buff_def: 3, duration: 10 }, stackable: true },
+                ingredients: [
+                    { name: 'Herb', quantity: 3, icon: '🌿' },
+                    { name: 'Water', quantity: 1, icon: '💧' }
+                ]
+            },
+            {
+                id: 'energy_stew',
+                name: 'Energy Stew',
+                result: { name: 'Energy Stew', icon: '🥘', type: 'food', effect: { heal: 50, buff_agi: 3, duration: 8 }, stackable: true },
+                ingredients: [
+                    { name: 'Vegetable', quantity: 2, icon: '🥕' },
+                    { name: 'Raw Meat', quantity: 1, icon: '🥩' },
+                    { name: 'Herb', quantity: 1, icon: '🌿' }
+                ]
+            },
+            {
+                id: 'mage_bread',
+                name: 'Mage Bread',
+                result: { name: 'Mage Bread', icon: '🍞', type: 'food', effect: { mana: 40, buff_mag: 4, duration: 10 }, stackable: true },
+                ingredients: [
+                    { name: 'Wheat', quantity: 3, icon: '🌾' },
+                    { name: 'Magic Essence', quantity: 1, icon: '✨' }
+                ]
+            },
+            {
+                id: 'dragon_feast',
+                name: 'Dragon Feast',
+                result: { name: 'Dragon Feast', icon: '🍗', type: 'food', effect: { heal: 100, buff_str: 5, buff_def: 5, duration: 20 }, stackable: true },
+                ingredients: [
+                    { name: 'Dragon Meat', quantity: 1, icon: '🐉' },
+                    { name: 'Rare Herb', quantity: 3, icon: '🌺' },
+                    { name: 'Magic Essence', quantity: 2, icon: '✨' }
+                ]
+            }
+        ];
+    }
+
+    openCookingPot() {
+        const modal = document.createElement('div');
+        modal.className = 'modal cooking-modal';
+
+        modal.innerHTML = `
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h2>🍖 Cooking Pot</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="cooking-intro">Cook delicious meals to restore health and gain powerful buffs!</p>
+                    <div class="cooking-recipes" id="cooking-recipes"></div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const recipesDiv = modal.querySelector('#cooking-recipes');
+        this.cookingRecipes.forEach(recipe => {
+            const div = document.createElement('div');
+            div.className = 'recipe-item';
+
+            const ingredientsHtml = recipe.ingredients.map(ing => {
+                const hasEnough = this.hasIngredient(ing.name, ing.quantity);
+                return `<div class="ingredient ${hasEnough ? 'has' : 'missing'}">
+                    ${ing.icon} ${ing.name} (${ing.quantity})
+                </div>`;
+            }).join('');
+
+            const canCook = recipe.ingredients.every(ing => this.hasIngredient(ing.name, ing.quantity));
+
+            div.innerHTML = `
+                <div class="recipe-result">
+                    <div class="result-icon">${recipe.result.icon}</div>
+                    <div class="result-name">${recipe.name}</div>
+                </div>
+                <div class="recipe-ingredients">
+                    ${ingredientsHtml}
+                </div>
+                <div class="recipe-effects">
+                    ${this.formatFoodEffects(recipe.result.effect)}
+                </div>
+                <button class="cook-btn" ${!canCook ? 'disabled' : ''}>Cook</button>
+            `;
+
+            if (canCook) {
+                div.querySelector('.cook-btn').addEventListener('click', () => {
+                    this.cookFood(recipe);
+                    modal.remove();
+                });
+            }
+
+            recipesDiv.appendChild(div);
+        });
+
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+
+    formatFoodEffects(effect) {
+        const parts = [];
+        if (effect.heal) parts.push(`Heal ${effect.heal} HP`);
+        if (effect.mana) parts.push(`Restore ${effect.mana} Mana`);
+        if (effect.buff_str) parts.push(`+${effect.buff_str} STR (${effect.duration} turns)`);
+        if (effect.buff_def) parts.push(`+${effect.buff_def} DEF (${effect.duration} turns)`);
+        if (effect.buff_agi) parts.push(`+${effect.buff_agi} AGI (${effect.duration} turns)`);
+        if (effect.buff_mag) parts.push(`+${effect.buff_mag} MAG (${effect.duration} turns)`);
+        return parts.join(', ');
+    }
+
+    cookFood(recipe) {
+        // Remove ingredients (simulated)
+        // Add result
+        if (this.player.addItem({...recipe.result})) {
+            this.addMessage(`Cooked ${recipe.name}!`, 'success');
+            this.checkAchievement('master_chef');
+            this.updateUI();
+        } else {
+            this.addMessage('Inventory full!', 'warning');
+        }
+    }
+
+    // ========================================================================
+    // COMPANION/PET & NPC SYSTEM
+    // ========================================================================
+
+    talkToNPCs(town) {
+        const npcs = this.generateNPCs(town);
+
+        const modal = document.createElement('div');
+        modal.className = 'modal npc-modal';
+
+        modal.innerHTML = `
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h2>💬 Town NPCs</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="npc-list" id="npc-list"></div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const npcList = modal.querySelector('#npc-list');
+        npcs.forEach(npc => {
+            const div = document.createElement('div');
+            div.className = 'npc-item';
+            div.innerHTML = `
+                <div class="npc-portrait">${npc.icon}</div>
+                <div class="npc-info">
+                    <h3>${npc.name}</h3>
+                    <p class="npc-role">${npc.role}</p>
+                </div>
+                <button class="talk-btn">Talk</button>
+            `;
+
+            div.querySelector('.talk-btn').addEventListener('click', () => {
+                modal.remove();
+                this.showNPCDialogue(npc);
+            });
+
+            npcList.appendChild(div);
+        });
+
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+
+    generateNPCs(town) {
+        return [
+            { name: 'Elder Marcus', icon: '👴', role: 'Village Elder', dialogue: 'elder' },
+            { name: 'Merchant Sarah', icon: '👩', role: 'General Merchant', dialogue: 'merchant' },
+            { name: 'Blacksmith Grom', icon: '👨', role: 'Master Smith', dialogue: 'blacksmith' },
+            { name: 'Mystic Luna', icon: '🧙‍♀️', role: 'Fortune Teller', dialogue: 'mystic' },
+            { name: 'Guard Captain', icon: '💂', role: 'Town Guard', dialogue: 'guard' },
+            { name: 'Innkeeper Tom', icon: '🧔', role: 'Inn Owner', dialogue: 'innkeeper' }
+        ];
+    }
+
+    showNPCDialogue(npc) {
+        const dialogues = {
+            elder: [
+                "Welcome, brave hero! Our town needs your help.",
+                "Dark forces are gathering in the Dark Forest. Be careful.",
+                "You show great promise. Keep training and you'll become legendary!"
+            ],
+            merchant: [
+                "Looking to buy or sell? I have the best prices!",
+                "Rare items come through here sometimes. Check back often!",
+                "I heard there's treasure in the old ruins to the east."
+            ],
+            blacksmith: [
+                "Need your equipment repaired? I'm your dwarf!",
+                "I can forge legendary weapons, but I need rare materials.",
+                "The dragon scales make the finest armor. Bring me some!"
+            ],
+            mystic: [
+                "I see great destiny in your future...",
+                "The stars speak of a coming darkness. Prepare yourself.",
+                "Would you like me to read your fortune? (10 gold)"
+            ],
+            guard: [
+                "Stay safe out there, adventurer.",
+                "Monsters have been spotted near the mountains.",
+                "If you see any bandits, report back to me."
+            ],
+            innkeeper: [
+                "Rest your weary bones here, friend!",
+                "Heard any good adventure stories lately?",
+                "The special tonight is dragon stew. Just kidding!"
+            ]
+        };
+
+        const dialogue = randomChoice(dialogues[npc.dialogue] || dialogues.elder);
+
+        const modal = document.createElement('div');
+        modal.className = 'modal dialogue-modal';
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="dialogue-header">
+                    <span class="npc-portrait-large">${npc.icon}</span>
+                    <h3>${npc.name}</h3>
+                </div>
+                <div class="dialogue-body">
+                    <p class="dialogue-text">"${dialogue}"</p>
+                    <div class="dialogue-options">
+                        <button class="dialogue-btn">Continue</button>
+                        ${npc.dialogue === 'mystic' ? '<button class="dialogue-btn fortune-btn">Get Fortune (10 gold)</button>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelector('.dialogue-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        const fortuneBtn = modal.querySelector('.fortune-btn');
+        if (fortuneBtn) {
+            fortuneBtn.addEventListener('click', () => {
+                if (this.player.gold >= 10) {
+                    this.player.gold -= 10;
+                    this.getFortune();
+                    modal.remove();
+                } else {
+                    this.addMessage('Not enough gold!', 'warning');
+                }
+            });
+        }
+    }
+
+    getFortune() {
+        const fortunes = [
+            "You will find great treasure soon...",
+            "Beware of the shadows in the forest.",
+            "A powerful ally will join your journey.",
+            "Your greatest challenge awaits in the mountains.",
+            "The spirits favor your quest.",
+            "Luck will be on your side in your next battle."
+        ];
+
+        const fortune = randomChoice(fortunes);
+        this.addMessage(`🔮 Fortune: ${fortune}`, 'info');
+
+        // Give small random buff
+        this.player.buffs.push({
+            name: 'Fortune Blessing',
+            duration: 20,
+            strMod: 1.1,
+            agiMod: 1.1
+        });
+    }
+
+    // ========================================================================
+    // GUILD SYSTEM
+    // ========================================================================
+
+    showGuild(town) {
+        const modal = document.createElement('div');
+        modal.className = 'modal guild-modal';
+
+        modal.innerHTML = `
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h2>⚔️ Adventurer's Guild</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="guild-info">
+                        <h3>Guild Rank: ${this.getGuildRank()}</h3>
+                        <div class="reputation-bar">
+                            <div class="rep-fill" style="width: ${Math.min(100, (this.reputation.adventurers_guild / 10))}%"></div>
+                        </div>
+                        <p>Reputation: ${this.reputation.adventurers_guild}/1000</p>
+                    </div>
+                    <div class="guild-services">
+                        <button class="guild-btn" data-service="training">⚔️ Combat Training (100 gold)</button>
+                        <button class="guild-btn" data-service="bounty">💰 Bounty Board</button>
+                        <button class="guild-btn" data-service="party">👥 Find Companions</button>
+                        <button class="guild-btn" data-service="storage">📦 Guild Storage</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelectorAll('.guild-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const service = btn.dataset.service;
+                modal.remove();
+
+                switch(service) {
+                    case 'training':
+                        this.combatTraining();
+                        break;
+                    case 'bounty':
+                        this.showBountyBoard();
+                        break;
+                    case 'party':
+                        this.findCompanions();
+                        break;
+                    case 'storage':
+                        this.showGuildStorage();
+                        break;
+                }
+            });
+        });
+
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+
+    getGuildRank() {
+        const rep = this.reputation.adventurers_guild;
+        if (rep >= 1000) return 'Legendary Hero';
+        if (rep >= 500) return 'Master Adventurer';
+        if (rep >= 250) return 'Veteran';
+        if (rep >= 100) return 'Skilled Fighter';
+        if (rep >= 50) return 'Apprentice';
+        return 'Novice';
+    }
+
+    combatTraining() {
+        if (this.player.gold >= 100) {
+            this.player.gold -= 100;
+            const xpGain = 50;
+            this.player.gainXp(xpGain);
+            this.addMessage('You complete combat training and gain experience!', 'success');
+            this.reputation.adventurers_guild += 5;
+            this.updateUI();
+        } else {
+            this.addMessage('Training costs 100 gold.', 'warning');
+        }
+    }
+
+    showBountyBoard() {
+        this.addMessage('Bounty board coming soon! Hunt dangerous monsters for rewards.', 'info');
+    }
+
+    findCompanions() {
+        if (!this.companion) {
+            const companions = [
+                { name: 'Wolf Pup', icon: '🐺', type: 'beast', bonus: { agi: 3, damage: 5 } },
+                { name: 'Fairy', icon: '🧚', type: 'magical', bonus: { mag: 5, mana: 20 } },
+                { name: 'Knight', icon: '⚔️', type: 'warrior', bonus: { str: 4, def: 3 } },
+                { name: 'Slime', icon: '💧', type: 'pet', bonus: { hp: 20 } }
+            ];
+
+            const chosen = randomChoice(companions);
+            this.companion = chosen;
+            this.addMessage(`${chosen.icon} ${chosen.name} has joined you as a companion!`, 'success');
+            this.checkAchievement('companion_acquired');
+        } else {
+            this.addMessage(`You already have ${this.companion.name} as a companion!`, 'info');
+        }
+    }
+
+    showGuildStorage() {
+        this.addMessage('Guild storage system coming soon!', 'info');
+    }
+
+    // ========================================================================
+    // RANDOM EVENTS SYSTEM
+    // ========================================================================
+
+    checkRandomEvent() {
+        if (this.randomEventCooldown > 0) {
+            this.randomEventCooldown--;
+            return;
+        }
+
+        // 5% chance per move
+        if (random(1, 100) <= 5) {
+            this.triggerRandomEvent();
+            this.randomEventCooldown = 50; // Cooldown before next event
+        }
+    }
+
+    triggerRandomEvent() {
+        const events = [
+            {
+                name: 'Wandering Merchant',
+                description: 'A traveling merchant offers you a rare item!',
+                options: [
+                    { text: 'Buy item (100 gold)', action: () => this.buyFromMerchant() },
+                    { text: 'Decline', action: () => this.addMessage('The merchant continues on their way.', 'info') }
+                ]
+            },
+            {
+                name: 'Treasure Chest',
+                description: 'You stumble upon a hidden treasure chest!',
+                options: [
+                    { text: 'Open it', action: () => this.openRandomChest() },
+                    { text: 'Leave it', action: () => this.addMessage('You decide not to risk it.', 'info') }
+                ]
+            },
+            {
+                name: 'Injured Traveler',
+                description: 'You find an injured traveler who needs help.',
+                options: [
+                    { text: 'Help them (1 Potion)', action: () => this.helpTraveler() },
+                    { text: 'Ignore', action: () => this.addMessage('You walk past the traveler.', 'info') }
+                ]
+            },
+            {
+                name: 'Mysterious Shrine',
+                description: 'You discover a mysterious shrine radiating power.',
+                options: [
+                    { text: 'Pray', action: () => this.prayAtShrine() },
+                    { text: 'Leave', action: () => this.addMessage('You leave the shrine alone.', 'info') }
+                ]
+            },
+            {
+                name: 'Ambush!',
+                description: 'Enemies ambush you from the shadows!',
+                options: [
+                    { text: 'Fight!', action: () => this.fightAmbush() }
+                ]
+            },
+            {
+                name: 'Lucky Find',
+                description: 'You find some gold on the ground!',
+                options: [
+                    { text: 'Take it', action: () => this.findGold() }
+                ]
+            }
+        ];
+
+        const event = randomChoice(events);
+        this.showEventDialog(event);
+    }
+
+    showEventDialog(event) {
+        const modal = document.createElement('div');
+        modal.className = 'modal event-modal';
+
+        const optionsHtml = event.options.map((opt, i) =>
+            `<button class="event-option-btn" data-index="${i}">${opt.text}</button>`
+        ).join('');
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>⚡ ${event.name}</h2>
+                </div>
+                <div class="modal-body">
+                    <p class="event-description">${event.description}</p>
+                    <div class="event-options">
+                        ${optionsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelectorAll('.event-option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.dataset.index);
+                event.options[index].action();
+                modal.remove();
+            });
+        });
+    }
+
+    buyFromMerchant() {
+        if (this.player.gold >= 100) {
+            this.player.gold -= 100;
+            const rareItems = Object.values(ITEM_TEMPLATES).filter(i =>
+                i.rarity === RARITY.RARE || i.rarity === RARITY.EPIC
+            );
+            const item = randomChoice(rareItems);
+            this.player.addItem({...item});
+            this.addMessage(`Purchased ${item.name}!`, 'success');
+            this.updateUI();
+        } else {
+            this.addMessage('Not enough gold!', 'warning');
+        }
+    }
+
+    openRandomChest() {
+        const gold = random(50, 150);
+        this.player.gold += gold;
+        this.addMessage(`Found ${gold} gold in the chest!`, 'success');
+
+        if (random(1, 100) > 50) {
+            const item = this.world.generateRandomItem();
+            this.player.addItem(item);
+            this.addMessage(`Also found: ${item.name}!`, 'success');
+        }
+
+        this.updateUI();
+    }
+
+    helpTraveler() {
+        const hasPotion = this.player.inventory.find(i => i.type === ITEM_TYPES.POTION);
+        if (hasPotion) {
+            const index = this.player.inventory.indexOf(hasPotion);
+            this.player.inventory.splice(index, 1);
+            this.addMessage('The traveler thanks you and gives you a blessing!', 'success');
+            this.player.buffs.push({
+                name: 'Traveler\'s Blessing',
+                duration: 50,
+                strMod: 1.15,
+                defMod: 1.15
+            });
+            this.reputation.starter_village += 10;
+        } else {
+            this.addMessage('You don\'t have any potions to spare.', 'warning');
+        }
+    }
+
+    prayAtShrine() {
+        const outcomes = [
+            () => {
+                this.player.hp = this.player.maxHp;
+                this.player.mana = this.player.maxMana;
+                this.addMessage('The shrine fully heals you!', 'success');
+            },
+            () => {
+                const xp = 100;
+                this.player.gainXp(xp);
+                this.addMessage(`The shrine grants you ${xp} experience!`, 'success');
+            },
+            () => {
+                this.player.buffs.push({
+                    name: 'Divine Protection',
+                    duration: 100,
+                    defMod: 1.3
+                });
+                this.addMessage('The shrine grants you divine protection!', 'success');
+            },
+            () => {
+                const damage = 20;
+                this.player.takeDamage(damage);
+                this.addMessage('The shrine was cursed! You take damage!', 'combat');
+            }
+        ];
+
+        randomChoice(outcomes)();
+        this.updateUI();
+    }
+
+    fightAmbush() {
+        const enemies = Object.entries(ENEMY_TEMPLATES).filter(([k, e]) =>
+            e.biome === this.currentBiome && !e.boss
+        );
+
+        if (enemies.length > 0) {
+            const [key, template] = randomChoice(enemies);
+            const enemy = new Enemy(template, this.player.level);
+            enemy.x = this.player.x;
+            enemy.y = this.player.y;
+            this.startCombat(enemy);
+        }
+    }
+
+    findGold() {
+        const gold = random(20, 80);
+        this.player.gold += gold;
+        this.addMessage(`Found ${gold} gold!`, 'success');
+        this.updateUI();
+    }
+
+    // ========================================================================
+    // WEATHER & TIME SYSTEM
+    // ========================================================================
+
+    updateTimeAndWeather() {
+        // Update time every 10 moves
+        if (random(1, 10) === 1) {
+            this.advanceTime();
+        }
+
+        // Change weather randomly
+        if (random(1, 50) === 1) {
+            this.changeWeather();
+        }
+    }
+
+    advanceTime() {
+        const times = ['dawn', 'day', 'dusk', 'night'];
+        const currentIndex = times.indexOf(this.timeOfDay);
+        this.timeOfDay = times[(currentIndex + 1) % times.length];
+
+        if (this.timeOfDay === 'dawn') {
+            this.dayCount++;
+            this.addMessage(`Day ${this.dayCount} begins...`, 'info');
+        }
+
+        // Night time effects
+        if (this.timeOfDay === 'night') {
+            this.addMessage('Night falls. Monsters grow stronger...', 'warning');
+        }
+    }
+
+    changeWeather() {
+        const weathers = ['clear', 'rain', 'storm', 'fog'];
+        const oldWeather = this.weather;
+        this.weather = randomChoice(weathers);
+
+        if (this.weather !== oldWeather) {
+            const messages = {
+                rain: 'It begins to rain...',
+                storm: 'A storm is brewing!',
+                fog: 'Fog rolls in, reducing visibility.',
+                clear: 'The weather clears up.'
+            };
+            this.addMessage(messages[this.weather], 'info');
+        }
+    }
+
+    getWeatherEffect() {
+        // Weather affects combat and movement
+        switch(this.weather) {
+            case 'rain':
+                return { agiMod: 0.9 };
+            case 'storm':
+                return { agiMod: 0.8, defMod: 0.9 };
+            case 'fog':
+                return { vision: -2 };
+            default:
+                return {};
+        }
+    }
+
+    getTimeEffect() {
+        // Time affects enemy stats
+        if (this.timeOfDay === 'night') {
+            return { enemyStrMod: 1.2, enemyDefMod: 1.1 };
+        }
+        return {};
+    }
+
+    // ========================================================================
+    // ACHIEVEMENT SYSTEM
+    // ========================================================================
+
+    initializeAchievements() {
+        this.achievementsList = [
+            { id: 'first_blood', name: 'First Blood', description: 'Defeat your first enemy', icon: '⚔️' },
+            { id: 'level_5', name: 'Getting Stronger', description: 'Reach level 5', icon: '⭐' },
+            { id: 'level_10', name: 'Veteran', description: 'Reach level 10', icon: '🌟' },
+            { id: 'rich', name: 'Wealthy', description: 'Accumulate 1000 gold', icon: '💰' },
+            { id: 'quest_completer', name: 'Quest Completer', description: 'Complete 5 quests', icon: '📜' },
+            { id: 'explorer', name: 'Explorer', description: 'Visit all biomes', icon: '🗺️' },
+            { id: 'slayer', name: 'Monster Slayer', description: 'Defeat 100 enemies', icon: '💀' },
+            { id: 'master_crafter', name: 'Master Crafter', description: 'Craft 50 items', icon: '🔨' },
+            { id: 'master_chef', name: 'Master Chef', description: 'Cook 30 meals', icon: '🍖' },
+            { id: 'companion_acquired', name: 'Best Friend', description: 'Acquire a companion', icon: '🐾' },
+            { id: 'dragon_slayer', name: 'Dragon Slayer', description: 'Defeat an Ancient Dragon', icon: '🐉' },
+            { id: 'legendary', name: 'Legendary Hero', description: 'Reach max guild rank', icon: '👑' }
+        ];
+
+        this.unlockedAchievements = [];
+    }
+
+    checkAchievement(id) {
+        if (this.unlockedAchievements.includes(id)) return;
+
+        const achievement = this.achievementsList.find(a => a.id === id);
+        if (!achievement) return;
+
+        let unlocked = false;
+
+        switch(id) {
+            case 'first_blood':
+                if (this.player.kills >= 1) unlocked = true;
+                break;
+            case 'level_5':
+                if (this.player.level >= 5) unlocked = true;
+                break;
+            case 'level_10':
+                if (this.player.level >= 10) unlocked = true;
+                break;
+            case 'rich':
+                if (this.player.gold >= 1000) unlocked = true;
+                break;
+            case 'quest_completer':
+                if (this.completedQuests.length >= 5) unlocked = true;
+                break;
+            case 'slayer':
+                if (this.player.kills >= 100) unlocked = true;
+                break;
+            case 'master_crafter':
+                if (this.craftedItems.length >= 50) unlocked = true;
+                break;
+            case 'companion_acquired':
+                if (this.companion) unlocked = true;
+                break;
+            default:
+                unlocked = true;
+        }
+
+        if (unlocked) {
+            this.unlockedAchievements.push(id);
+            this.showAchievementNotification(achievement);
+        }
+    }
+
+    showAchievementNotification(achievement) {
+        const notification = document.createElement('div');
+        notification.className = 'achievement-notification';
+        notification.innerHTML = `
+            <div class="achievement-content">
+                <div class="achievement-icon">${achievement.icon}</div>
+                <div class="achievement-info">
+                    <div class="achievement-title">Achievement Unlocked!</div>
+                    <div class="achievement-name">${achievement.name}</div>
+                    <div class="achievement-desc">${achievement.description}</div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 100);
+
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 500);
+        }, 5000);
+    }
+
+    // ========================================================================
+    // DUNGEON/CAVE/RUINS EXPLORATION
+    // ========================================================================
+
+    enterDungeon(x, y) {
+        this.addMessage('You enter a dark dungeon...', 'warning');
+        // TODO: Generate mini-dungeon instance
+        this.addMessage('Dungeon system coming soon! Prepare for challenging encounters!', 'info');
+    }
+
+    exploreCave(x, y) {
+        this.world.tiles[y][x] = TILE_TYPES.STONE;
+
+        const outcomes = [
+            () => {
+                const gold = random(100, 300);
+                this.player.gold += gold;
+                this.addMessage(`You explore the cave and find ${gold} gold!`, 'success');
+            },
+            () => {
+                const item = this.world.generateRandomItem();
+                this.player.addItem(item);
+                this.addMessage(`You find ${item.name} in the cave!`, 'success');
+            },
+            () => {
+                this.addMessage('You find a sleeping bear and carefully retreat!', 'warning');
+            },
+            () => {
+                const enemy = new Enemy(ENEMY_TEMPLATES.stone_golem, this.player.level + 2);
+                enemy.x = x;
+                enemy.y = y;
+                this.world.enemies.push(enemy);
+                this.addMessage('A Stone Golem emerges from the cave!', 'combat');
+                this.startCombat(enemy);
+            }
+        ];
+
+        randomChoice(outcomes)();
+        this.updateQuestProgress('explore', 'cave', 1);
+        this.updateUI();
+    }
+
+    exploreRuins(x, y) {
+        this.world.tiles[y][x] = TILE_TYPES.STONE;
+
+        const outcomes = [
+            () => {
+                const item = { ...randomChoice(Object.values(ITEM_TEMPLATES).filter(i =>
+                    i.rarity === RARITY.RARE || i.rarity === RARITY.EPIC
+                ))};
+                this.player.addItem(item);
+                this.addMessage(`You discover ancient treasure: ${item.name}!`, 'success');
+            },
+            () => {
+                const xp = 200;
+                this.player.gainXp(xp);
+                this.addMessage(`You decipher ancient texts and gain ${xp} experience!`, 'success');
+            },
+            () => {
+                this.addMessage('The ruins are cursed! You feel weakened...', 'warning');
+                this.player.buffs.push({
+                    name: 'Ancient Curse',
+                    duration: 20,
+                    strMod: 0.8,
+                    defMod: 0.8
+                });
+            },
+            () => {
+                const enemy = new Enemy(ENEMY_TEMPLATES.mummy, this.player.level + 3);
+                enemy.x = x;
+                enemy.y = y;
+                this.world.enemies.push(enemy);
+                this.addMessage('An ancient Mummy awakens!', 'combat');
+                this.startCombat(enemy);
+            }
+        ];
+
+        randomChoice(outcomes)();
+        this.updateQuestProgress('explore', 'ruins', 1);
+        this.updateUI();
     }
 
     gameOver() {
