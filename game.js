@@ -3846,6 +3846,7 @@ class World {
 
 class Game {
     constructor() {
+        console.log('Game constructor called');
         this.state = 'title';
         this.player = null;
         this.world = null;
@@ -3858,12 +3859,22 @@ class Game {
         this.shakeAmount = 0;
         this.lastRenderTime = 0;
 
+        console.log('Getting canvas element...');
         this.canvas = document.getElementById('dungeon-canvas');
-        this.ctx = this.canvas.getContext('2d');
+        if (!this.canvas) {
+            console.error('Canvas element not found!');
+        } else {
+            console.log('Canvas found, getting context...');
+            this.ctx = this.canvas.getContext('2d');
+        }
 
+        console.log('Calling setupEventListeners...');
         this.setupEventListeners();
+        console.log('Calling initializeUI...');
         this.initializeUI();
+        console.log('Starting render loop...');
         this.startRenderLoop();
+        console.log('Game constructor complete');
     }
 
     startRenderLoop() {
@@ -3916,22 +3927,41 @@ class Game {
     }
 
     setupEventListeners() {
+        console.log('Setting up event listeners...');
+
         // Class selection
-        document.querySelectorAll('.class-card').forEach(card => {
+        const classCards = document.querySelectorAll('.class-card');
+        console.log('Found', classCards.length, 'class cards');
+
+        classCards.forEach(card => {
             card.addEventListener('click', () => {
+                console.log('Class card clicked:', card.dataset.class);
                 document.querySelectorAll('.class-card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
                 this.selectedClass = card.dataset.class;
-                document.getElementById('start-game-btn').disabled = false;
+                const startBtn = document.getElementById('start-game-btn');
+                if (startBtn) {
+                    startBtn.disabled = false;
+                    console.log('Start button enabled');
+                }
             });
         });
 
         // Start game
-        document.getElementById('start-game-btn').addEventListener('click', () => {
-            if (this.selectedClass) {
-                this.startGame();
-            }
-        });
+        const startBtn = document.getElementById('start-game-btn');
+        if (startBtn) {
+            console.log('Start button found, attaching listener');
+            startBtn.addEventListener('click', () => {
+                console.log('Start button clicked, selectedClass:', this.selectedClass);
+                if (this.selectedClass) {
+                    this.startGame();
+                } else {
+                    console.error('No class selected!');
+                }
+            });
+        } else {
+            console.error('Start button not found!');
+        }
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
@@ -3949,16 +3979,25 @@ class Game {
         });
 
         // Quick actions
-        document.getElementById('rest-btn').addEventListener('click', () => this.rest());
-        document.getElementById('search-btn').addEventListener('click', () => this.search());
-        document.getElementById('skills-btn').addEventListener('click', () => this.openSkillsModal());
-        document.getElementById('talents-btn').addEventListener('click', () => this.openTalentTreeModal());
-        document.getElementById('enchant-btn').addEventListener('click', () => this.openEnchantmentModal());
+        const restBtn = document.getElementById('rest-btn');
+        const searchBtn = document.getElementById('search-btn');
+        const skillsBtn = document.getElementById('skills-btn');
+        const talentsBtn = document.getElementById('talents-btn');
+        const enchantBtn = document.getElementById('enchant-btn');
+
+        if (restBtn) restBtn.addEventListener('click', () => this.rest());
+        if (searchBtn) searchBtn.addEventListener('click', () => this.search());
+        if (skillsBtn) skillsBtn.addEventListener('click', () => this.openSkillsModal());
+        if (talentsBtn) talentsBtn.addEventListener('click', () => this.openTalentTreeModal());
+        if (enchantBtn) enchantBtn.addEventListener('click', () => this.openEnchantmentModal());
 
         // Restart
-        document.getElementById('restart-btn').addEventListener('click', () => {
-            this.returnToTitle();
-        });
+        const restartBtn = document.getElementById('restart-btn');
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                this.returnToTitle();
+            });
+        }
 
         // Modal close buttons
         document.querySelectorAll('.close-btn').forEach(btn => {
@@ -3971,33 +4010,65 @@ class Game {
     initializeUI() {
         // Initialize inventory grid
         const inventoryGrid = document.getElementById('inventory-grid');
-        for (let i = 0; i < 20; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'inventory-slot empty';
-            slot.dataset.slot = i;
-            inventoryGrid.appendChild(slot);
+        if (inventoryGrid) {
+            for (let i = 0; i < 20; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot empty';
+                slot.dataset.slot = i;
+                inventoryGrid.appendChild(slot);
+            }
         }
     }
 
     startGame() {
-        this.player = new Player(this.selectedClass);
-        this.messageLog = [];
-        this.initializeGameSystems();
+        console.log('Starting game with class:', this.selectedClass);
 
-        this.generateWorld();
+        try {
+            console.log('Creating player...');
+            this.player = new Player(this.selectedClass);
+            console.log('Player created successfully');
 
-        document.getElementById('title-screen').classList.remove('active');
-        document.getElementById('game-screen').classList.add('active');
+            this.messageLog = [];
 
-        this.state = 'playing';
+            console.log('Initializing game systems...');
+            this.initializeGameSystems();
+            console.log('Game systems initialized');
 
-        this.addMessage('⚔️ Welcome to Chronicles of Eldoria! ⚔️', 'success');
-        this.addMessage('You have been summoned to this world as a hero...', 'info');
-        this.addMessage('Use WASD or Arrow Keys to move. Press R to rest, I for inventory.', 'info');
-        this.addMessage('Visit towns to trade, accept quests, and rest at inns!', 'warning');
+            console.log('Generating world...');
+            this.generateWorld();
+            console.log('World generated');
 
-        this.updateUI();
-        this.render();
+            console.log('Switching screens...');
+            const titleScreen = document.getElementById('title-screen');
+            const gameScreen = document.getElementById('game-screen');
+
+            if (titleScreen && gameScreen) {
+                titleScreen.classList.remove('active');
+                gameScreen.classList.add('active');
+                console.log('Screens switched successfully');
+            } else {
+                console.error('Could not find title-screen or game-screen elements');
+            }
+
+            this.state = 'playing';
+            console.log('Game state set to playing');
+
+            this.addMessage('⚔️ Welcome to Chronicles of Eldoria! ⚔️', 'success');
+            this.addMessage('You have been summoned to this world as a hero...', 'info');
+            this.addMessage('Use WASD or Arrow Keys to move. Press R to rest, I for inventory.', 'info');
+            this.addMessage('Visit towns to trade, accept quests, and rest at inns!', 'warning');
+
+            console.log('Updating UI...');
+            this.updateUI();
+            console.log('UI updated');
+
+            console.log('Rendering...');
+            this.render();
+            console.log('Game started successfully!');
+        } catch (error) {
+            console.error('Error starting game:', error);
+            alert('Error starting game: ' + error.message);
+        }
     }
 
     initializeGameSystems() {
@@ -7893,5 +7964,12 @@ class Game {
 let game;
 
 window.addEventListener('load', () => {
-    game = new Game();
+    console.log('Window loaded, creating game instance...');
+    try {
+        game = new Game();
+        console.log('Game instance created successfully');
+    } catch (error) {
+        console.error('Error creating game instance:', error);
+        alert('Failed to initialize game: ' + error.message);
+    }
 });
