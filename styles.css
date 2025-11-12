@@ -2262,6 +2262,187 @@ body {
     font-style: italic;
 }
 
+/* ============================================================================
+   TALENT TREE MODAL STYLES
+   ============================================================================ */
+
+.talent-tree-modal .modal-content {
+    min-width: 1000px;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.talent-points-display {
+    background: linear-gradient(135deg, rgba(139, 92, 46, 0.2) 0%, rgba(212, 175, 55, 0.2) 100%);
+    border: 2px solid var(--accent-gold);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.talent-points-display h3 {
+    color: var(--accent-gold);
+    font-size: 1.5rem;
+    margin: 0 0 0.5rem 0;
+}
+
+.talent-points-display .points-count {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #4ec9b0;
+}
+
+.talent-points-display p {
+    margin: 0.5rem 0 0 0;
+    color: var(--text-secondary);
+}
+
+.talent-tree-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.talent-tier {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(139, 92, 46, 0.4);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.tier-title {
+    color: var(--accent-gold);
+    font-size: 1.3rem;
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+    border-bottom: 2px solid rgba(139, 92, 46, 0.4);
+    padding-bottom: 0.75rem;
+}
+
+.talent-tier-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.talent-node {
+    background: rgba(139, 92, 46, 0.15);
+    border: 2px solid rgba(139, 92, 46, 0.4);
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.talent-node:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.talent-node.available {
+    border-color: rgba(78, 201, 176, 0.6);
+    background: rgba(78, 201, 176, 0.1);
+}
+
+.talent-node.available:hover {
+    border-color: #4ec9b0;
+    background: rgba(78, 201, 176, 0.2);
+    box-shadow: 0 4px 16px rgba(78, 201, 176, 0.4);
+}
+
+.talent-node.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: rgba(139, 92, 46, 0.2);
+}
+
+.talent-node.locked:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.talent-node.maxed {
+    border-color: var(--accent-gold);
+    background: rgba(212, 175, 55, 0.2);
+}
+
+.talent-node.maxed::after {
+    content: '✓';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 1.5rem;
+    color: var(--accent-gold);
+}
+
+.talent-icon {
+    font-size: 3rem;
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+
+.talent-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.talent-rank {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--accent-gold);
+    margin-bottom: 0.75rem;
+    font-weight: bold;
+}
+
+.talent-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+
+.talent-requires {
+    font-size: 0.85rem;
+    color: #f48771;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    font-style: italic;
+}
+
+.talent-status {
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-top: 0.5rem;
+}
+
+.available-status {
+    background: rgba(78, 201, 176, 0.3);
+    color: #4ec9b0;
+    border: 1px solid #4ec9b0;
+}
+
+.locked-status {
+    background: rgba(139, 92, 46, 0.3);
+    color: #8b5c2e;
+    border: 1px solid rgba(139, 92, 46, 0.5);
+}
+
+.maxed-status {
+    background: rgba(212, 175, 55, 0.3);
+    color: var(--accent-gold);
+    border: 1px solid var(--accent-gold);
+}
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
     .stats-grid {

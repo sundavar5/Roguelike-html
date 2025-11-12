@@ -2658,6 +2658,249 @@ const ENCHANTMENT_TEMPLATES = {
 };
 
 // ============================================================================
+// TALENT TREE SYSTEM
+// ============================================================================
+
+const TALENT_TEMPLATES = {
+    // Warrior Talents
+    warrior_strength: {
+        name: 'Titan Strength',
+        class: 'warrior',
+        icon: '💪',
+        description: 'Increases Strength by 5 per rank',
+        maxRank: 5,
+        tier: 1,
+        effect: (rank) => ({ str: 5 * rank })
+    },
+    warrior_hp: {
+        name: 'Iron Constitution',
+        class: 'warrior',
+        icon: '❤️',
+        description: 'Increases max HP by 20 per rank',
+        maxRank: 5,
+        tier: 1,
+        effect: (rank) => ({ hp: 20 * rank })
+    },
+    warrior_armor: {
+        name: 'Hardened Armor',
+        class: 'warrior',
+        icon: '🛡️',
+        description: 'Increases Defense by 3 per rank',
+        maxRank: 5,
+        tier: 1,
+        effect: (rank) => ({ def: 3 * rank })
+    },
+    warrior_rage: {
+        name: 'Battle Rage',
+        class: 'warrior',
+        icon: '😡',
+        description: 'Deal 5% more damage per rank',
+        maxRank: 5,
+        tier: 2,
+        requires: ['warrior_strength'],
+        effect: (rank) => ({ damageMult: 1 + (0.05 * rank) })
+    },
+    warrior_defense: {
+        name: 'Defensive Stance',
+        class: 'warrior',
+        icon: '⛨',
+        description: 'Reduce damage taken by 3% per rank',
+        maxRank: 5,
+        tier: 2,
+        requires: ['warrior_armor'],
+        effect: (rank) => ({ damageReduction: 0.03 * rank })
+    },
+    warrior_regeneration: {
+        name: 'Combat Regeneration',
+        class: 'warrior',
+        icon: '💚',
+        description: 'Regenerate 2 HP per turn per rank',
+        maxRank: 3,
+        tier: 2,
+        requires: ['warrior_hp'],
+        effect: (rank) => ({ hpRegen: 2 * rank })
+    },
+    warrior_cleave: {
+        name: 'Cleaving Strikes',
+        class: 'warrior',
+        icon: '⚔️',
+        description: 'Basic attacks have 20% chance per rank to hit adjacent enemies',
+        maxRank: 3,
+        tier: 3,
+        requires: ['warrior_rage'],
+        effect: (rank) => ({ cleaveChance: 0.2 * rank })
+    },
+    warrior_immortal: {
+        name: 'Undying Warrior',
+        class: 'warrior',
+        icon: '👑',
+        description: 'Survive a fatal blow once per combat (unlocked at rank 1)',
+        maxRank: 1,
+        tier: 3,
+        requires: ['warrior_defense', 'warrior_regeneration'],
+        effect: (rank) => ({ undying: rank > 0 })
+    },
+
+    // Rogue Talents
+    rogue_agility: {
+        name: 'Lightning Reflexes',
+        class: 'rogue',
+        icon: '⚡',
+        description: 'Increases Agility by 5 per rank',
+        maxRank: 5,
+        tier: 1,
+        effect: (rank) => ({ agi: 5 * rank })
+    },
+    rogue_crit: {
+        name: 'Deadly Precision',
+        class: 'rogue',
+        icon: '🎯',
+        description: 'Increases Critical Chance by 5% per rank',
+        maxRank: 5,
+        tier: 1,
+        effect: (rank) => ({ crit: 5 * rank })
+    },
+    rogue_evasion: {
+        name: 'Shadow Step',
+        class: 'rogue',
+        icon: '👤',
+        description: 'Increases dodge chance by 3% per rank',
+        maxRank: 5,
+        tier: 1,
+        effect: (rank) => ({ dodgeChance: 3 * rank })
+    },
+    rogue_backstab: {
+        name: 'Backstab Master',
+        class: 'rogue',
+        icon: '🗡️',
+        description: 'Critical hits deal 20% more damage per rank',
+        maxRank: 5,
+        tier: 2,
+        requires: ['rogue_crit'],
+        effect: (rank) => ({ critDamageMult: 1 + (0.2 * rank) })
+    },
+    rogue_poison: {
+        name: 'Deadly Toxins',
+        class: 'rogue',
+        icon: '☠️',
+        description: 'Attacks have 10% chance per rank to poison (3 dmg/turn for 3 turns)',
+        maxRank: 3,
+        tier: 2,
+        requires: ['rogue_agility'],
+        effect: (rank) => ({ poisonChance: 0.1 * rank, poisonDamage: 3 })
+    },
+    rogue_combo: {
+        name: 'Combo Points',
+        class: 'rogue',
+        icon: '🔄',
+        description: 'Every 3rd attack deals 50% bonus damage per rank',
+        maxRank: 2,
+        tier: 2,
+        requires: ['rogue_agility'],
+        effect: (rank) => ({ comboBonus: 0.5 * rank })
+    },
+    rogue_shadowstrike: {
+        name: 'Shadow Strike',
+        class: 'rogue',
+        icon: '🌙',
+        description: 'First attack in combat is always a critical hit',
+        maxRank: 1,
+        tier: 3,
+        requires: ['rogue_backstab'],
+        effect: (rank) => ({ shadowStrike: rank > 0 })
+    },
+    rogue_multistrike: {
+        name: 'Multi-Strike',
+        class: 'rogue',
+        icon: '⚡',
+        description: '20% chance per rank to attack twice',
+        maxRank: 2,
+        tier: 3,
+        requires: ['rogue_combo', 'rogue_evasion'],
+        effect: (rank) => ({ multistrikeChance: 0.2 * rank })
+    },
+
+    // Mage Talents
+    mage_magic: {
+        name: 'Arcane Intellect',
+        class: 'mage',
+        icon: '🧠',
+        description: 'Increases Magic by 5 per rank',
+        maxRank: 5,
+        tier: 1,
+        effect: (rank) => ({ mag: 5 * rank })
+    },
+    mage_mana: {
+        name: 'Deep Mana Pool',
+        class: 'mage',
+        icon: '💙',
+        description: 'Increases max Mana by 25 per rank',
+        maxRank: 5,
+        tier: 1,
+        effect: (rank) => ({ mana: 25 * rank })
+    },
+    mage_regen: {
+        name: 'Mana Spring',
+        class: 'mage',
+        icon: '💧',
+        description: 'Regenerate 5 mana per turn per rank',
+        maxRank: 5,
+        tier: 1,
+        effect: (rank) => ({ manaRegen: 5 * rank })
+    },
+    mage_spellpower: {
+        name: 'Spell Power',
+        class: 'mage',
+        icon: '⚡',
+        description: 'Spell damage increased by 10% per rank',
+        maxRank: 5,
+        tier: 2,
+        requires: ['mage_magic'],
+        effect: (rank) => ({ spellDamageMult: 1 + (0.1 * rank) })
+    },
+    mage_cooldown: {
+        name: 'Rapid Casting',
+        class: 'mage',
+        icon: '⏱️',
+        description: 'Reduce skill cooldowns by 10% per rank',
+        maxRank: 3,
+        tier: 2,
+        requires: ['mage_regen'],
+        effect: (rank) => ({ cooldownReduction: 0.1 * rank })
+    },
+    mage_barrier: {
+        name: 'Mana Barrier',
+        class: 'mage',
+        icon: '🛡️',
+        description: 'Absorb 5 damage per rank before taking HP damage',
+        maxRank: 5,
+        tier: 2,
+        requires: ['mage_mana'],
+        effect: (rank) => ({ manaBarrier: 5 * rank })
+    },
+    mage_arcane_mastery: {
+        name: 'Arcane Mastery',
+        class: 'mage',
+        icon: '🌟',
+        description: 'Spells cost 20% less mana per rank',
+        maxRank: 3,
+        tier: 3,
+        requires: ['mage_spellpower', 'mage_cooldown'],
+        effect: (rank) => ({ manaCostReduction: 0.2 * rank })
+    },
+    mage_elemental: {
+        name: 'Elemental Fury',
+        class: 'mage',
+        icon: '🔥',
+        description: 'AOE spells hit 1 additional target per rank',
+        maxRank: 2,
+        tier: 3,
+        requires: ['mage_spellpower'],
+        effect: (rank) => ({ aoeBonus: rank })
+    }
+};
+
+// ============================================================================
 // CLASS DEFINITIONS
 // ============================================================================
 
@@ -2699,6 +2942,10 @@ class Player {
         this.skillCooldowns = {};
         this.skillPoints = 0;
         this.unlockedSkills = [];
+
+        this.talents = {}; // Maps talent ID to current rank
+        this.talentPoints = 3; // Start with 3 talent points
+        this.totalTalentPointsEarned = 3;
 
         this.buffs = [];
         this.defending = false;
@@ -2844,6 +3091,32 @@ class Player {
             }
         }
 
+        // Add talent bonuses
+        for (const talentId in this.talents) {
+            const rank = this.talents[talentId];
+            const talent = TALENT_TEMPLATES[talentId];
+            if (talent && talent.effect && rank > 0) {
+                const bonuses = talent.effect(rank);
+                for (const stat in bonuses) {
+                    if (stat === 'hp') {
+                        equipHpBonus += bonuses[stat];
+                    } else if (stat === 'mana') {
+                        equipManaBonus += bonuses[stat];
+                    } else if (stat === 'str') {
+                        total.strength += bonuses[stat];
+                    } else if (stat === 'def') {
+                        total.defense += bonuses[stat];
+                    } else if (stat === 'agi') {
+                        total.agility += bonuses[stat];
+                    } else if (stat === 'mag') {
+                        total.magic += bonuses[stat];
+                    } else if (stat === 'crit') {
+                        total.critChance += bonuses[stat];
+                    }
+                }
+            }
+        }
+
         // Update maxHp and maxMana based on base + bonuses
         this.maxHp = this.baseMaxHp + equipHpBonus;
         this.maxMana = this.baseMaxMana + equipManaBonus;
@@ -2956,8 +3229,10 @@ class Player {
         this.hp = this.maxHp;
         this.mana = this.maxMana;
 
-        // Gain skill point
+        // Gain skill point and talent point
         this.skillPoints++;
+        this.talentPoints++;
+        this.totalTalentPointsEarned++;
     }
 
     addItem(item) {
@@ -3677,6 +3952,7 @@ class Game {
         document.getElementById('rest-btn').addEventListener('click', () => this.rest());
         document.getElementById('search-btn').addEventListener('click', () => this.search());
         document.getElementById('skills-btn').addEventListener('click', () => this.openSkillsModal());
+        document.getElementById('talents-btn').addEventListener('click', () => this.openTalentTreeModal());
         document.getElementById('enchant-btn').addEventListener('click', () => this.openEnchantmentModal());
 
         // Restart
@@ -3797,6 +4073,9 @@ class Game {
                 break;
             case 'r':
                 this.rest();
+                return;
+            case 't':
+                this.openTalentTreeModal();
                 return;
             case 'e':
                 this.openEnchantmentModal();
@@ -7450,6 +7729,160 @@ class Game {
 
         const enchant = ENCHANTMENT_TEMPLATES[item.enchantment];
         return enchant ? (enchant.effect || {}) : {};
+    }
+
+    // ========================================================================
+    // TALENT TREE SYSTEM
+    // ========================================================================
+
+    openTalentTreeModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal talent-tree-modal';
+        modal.id = 'talent-tree-modal';
+
+        const classTalents = Object.entries(TALENT_TEMPLATES).filter(([id, talent]) =>
+            talent.class === this.player.className
+        );
+
+        // Group by tier
+        const tier1 = classTalents.filter(([id, t]) => t.tier === 1);
+        const tier2 = classTalents.filter(([id, t]) => t.tier === 2);
+        const tier3 = classTalents.filter(([id, t]) => t.tier === 3);
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>🌟 Talent Tree - ${this.player.className.charAt(0).toUpperCase() + this.player.className.slice(1)}</h2>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="talent-points-display">
+                        <h3>Available Talent Points: <span class="points-count">${this.player.talentPoints}</span></h3>
+                        <p>Total Points Spent: ${this.player.totalTalentPointsEarned - this.player.talentPoints}</p>
+                    </div>
+
+                    <div class="talent-tree-container">
+                        ${this.renderTalentTier('Tier 1 - Foundation', tier1)}
+                        ${this.renderTalentTier('Tier 2 - Specialization', tier2)}
+                        ${this.renderTalentTier('Tier 3 - Mastery', tier3)}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Close button
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // Add click handlers for each talent
+        modal.querySelectorAll('.talent-node').forEach(node => {
+            const talentId = node.dataset.talentId;
+            node.addEventListener('click', () => {
+                this.learnTalent(talentId);
+            });
+        });
+    }
+
+    renderTalentTier(tierName, talents) {
+        return `
+            <div class="talent-tier">
+                <h3 class="tier-title">${tierName}</h3>
+                <div class="talent-tier-grid">
+                    ${talents.map(([id, talent]) => {
+                        const currentRank = this.player.talents[id] || 0;
+                        const canLearn = this.canLearnTalent(id);
+                        const isMaxed = currentRank >= talent.maxRank;
+                        const requirementsMet = this.checkTalentRequirements(id);
+
+                        return `
+                            <div class="talent-node ${canLearn ? 'available' : 'locked'} ${isMaxed ? 'maxed' : ''}"
+                                 data-talent-id="${id}">
+                                <div class="talent-icon">${talent.icon}</div>
+                                <div class="talent-name">${talent.name}</div>
+                                <div class="talent-rank">${currentRank}/${talent.maxRank}</div>
+                                <div class="talent-description">${talent.description}</div>
+                                ${talent.requires ? `
+                                    <div class="talent-requires">
+                                        Requires: ${talent.requires.map(req => TALENT_TEMPLATES[req]?.name).join(', ')}
+                                    </div>
+                                ` : ''}
+                                ${requirementsMet && !isMaxed ?
+                                    '<div class="talent-status available-status">Click to learn</div>' :
+                                    isMaxed ? '<div class="talent-status maxed-status">Maxed</div>' :
+                                    '<div class="talent-status locked-status">Requirements not met</div>'
+                                }
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    canLearnTalent(talentId) {
+        const talent = TALENT_TEMPLATES[talentId];
+        if (!talent) return false;
+
+        const currentRank = this.player.talents[talentId] || 0;
+        if (currentRank >= talent.maxRank) return false;
+        if (this.player.talentPoints <= 0) return false;
+
+        return this.checkTalentRequirements(talentId);
+    }
+
+    checkTalentRequirements(talentId) {
+        const talent = TALENT_TEMPLATES[talentId];
+        if (!talent) return false;
+
+        // Check if prerequisites are met
+        if (talent.requires && talent.requires.length > 0) {
+            for (const reqId of talent.requires) {
+                const reqRank = this.player.talents[reqId] || 0;
+                if (reqRank === 0) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    learnTalent(talentId) {
+        if (!this.canLearnTalent(talentId)) {
+            this.addMessage('Cannot learn this talent yet!', 'error');
+            return;
+        }
+
+        const talent = TALENT_TEMPLATES[talentId];
+        const currentRank = this.player.talents[talentId] || 0;
+
+        // Increase rank
+        this.player.talents[talentId] = currentRank + 1;
+        this.player.talentPoints--;
+
+        this.addMessage(`Learned ${talent.name} (Rank ${this.player.talents[talentId]})!`, 'success');
+
+        // Recalculate stats
+        this.player.getTotalStats();
+        this.updateUI();
+
+        // Refresh modal
+        const modal = document.getElementById('talent-tree-modal');
+        if (modal) {
+            modal.remove();
+        }
+        this.openTalentTreeModal();
+    }
+
+    getTalentBonus(talentId) {
+        const rank = this.player.talents[talentId] || 0;
+        if (rank === 0) return null;
+
+        const talent = TALENT_TEMPLATES[talentId];
+        return talent ? talent.effect(rank) : null;
     }
 }
 
