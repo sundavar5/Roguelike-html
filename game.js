@@ -334,6 +334,863 @@ const ITEM_TEMPLATES = {
         effect: { identify: true },
         value: 50,
         stackable: true
+    },
+
+    // === EXPANDED WEAPON ARSENAL ===
+    // Bows
+    short_bow: {
+        name: 'Short Bow',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.COMMON,
+        icon: '🏹',
+        stats: { agi: 3, damage: 6, crit: 3 },
+        value: 30
+    },
+    longbow: {
+        name: 'Longbow',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.UNCOMMON,
+        icon: '🏹',
+        stats: { agi: 6, damage: 12, crit: 5 },
+        value: 90
+    },
+    elven_bow: {
+        name: 'Elven Bow',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.RARE,
+        icon: '🏹',
+        stats: { agi: 12, damage: 18, crit: 10 },
+        value: 280
+    },
+
+    // Spears
+    wooden_spear: {
+        name: 'Wooden Spear',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.COMMON,
+        icon: '🔱',
+        stats: { str: 4, agi: 2, damage: 7 },
+        value: 25
+    },
+    iron_spear: {
+        name: 'Iron Spear',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.UNCOMMON,
+        icon: '🔱',
+        stats: { str: 7, agi: 4, damage: 13 },
+        value: 70
+    },
+    trident_of_the_sea: {
+        name: 'Trident of the Sea',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.EPIC,
+        icon: '🔱',
+        stats: { str: 14, agi: 8, damage: 22, mana: 20 },
+        value: 450
+    },
+
+    // Axes
+    hand_axe: {
+        name: 'Hand Axe',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.COMMON,
+        icon: '🪓',
+        stats: { str: 5, damage: 8 },
+        value: 35
+    },
+    battle_axe: {
+        name: 'Battle Axe',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.UNCOMMON,
+        icon: '🪓',
+        stats: { str: 9, damage: 16 },
+        value: 95
+    },
+    executioners_axe: {
+        name: 'Executioner\'s Axe',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.RARE,
+        icon: '🪓',
+        stats: { str: 15, damage: 25, crit: 8 },
+        value: 320
+    },
+
+    // Hammers
+    war_hammer: {
+        name: 'War Hammer',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.UNCOMMON,
+        icon: '🔨',
+        stats: { str: 10, def: 3, damage: 14 },
+        value: 85
+    },
+    thunder_hammer: {
+        name: 'Thunder Hammer',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.EPIC,
+        icon: '🔨',
+        stats: { str: 16, mag: 8, damage: 23 },
+        value: 500
+    },
+
+    // Mage Weapons
+    apprentice_wand: {
+        name: 'Apprentice Wand',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.COMMON,
+        icon: '🪄',
+        stats: { mag: 3, mana: 5, damage: 3 },
+        value: 15
+    },
+    crystal_wand: {
+        name: 'Crystal Wand',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.UNCOMMON,
+        icon: '🪄',
+        stats: { mag: 8, mana: 15, damage: 6 },
+        value: 65
+    },
+    scepter_of_flames: {
+        name: 'Scepter of Flames',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.RARE,
+        icon: '🔮',
+        stats: { mag: 13, mana: 25, damage: 12 },
+        value: 220
+    },
+    staff_of_eternity: {
+        name: 'Staff of Eternity',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.LEGENDARY,
+        icon: '🔮',
+        stats: { mag: 22, mana: 60, damage: 20, crit: 12 },
+        value: 1200
+    },
+
+    // Daggers & Assassin Weapons
+    throwing_knife: {
+        name: 'Throwing Knife',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.COMMON,
+        icon: '🔪',
+        stats: { agi: 2, damage: 3, crit: 4 },
+        value: 12
+    },
+    poison_dagger: {
+        name: 'Poison Dagger',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.RARE,
+        icon: '🗡️',
+        stats: { agi: 10, damage: 11, crit: 12 },
+        value: 190
+    },
+    shadow_blade: {
+        name: 'Shadow Blade',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.EPIC,
+        icon: '🗡️',
+        stats: { agi: 16, damage: 18, crit: 20 },
+        value: 550
+    },
+
+    // === EXPANDED ARMOR COLLECTION ===
+    // Light Armor
+    cloth_robe: {
+        name: 'Cloth Robe',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.COMMON,
+        icon: '👘',
+        stats: { def: 2, mana: 10 },
+        value: 18
+    },
+    mystic_robe: {
+        name: 'Mystic Robe',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.UNCOMMON,
+        icon: '👘',
+        stats: { def: 4, mag: 5, mana: 20 },
+        value: 65
+    },
+    archmage_robes: {
+        name: 'Archmage Robes',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.RARE,
+        icon: '👘',
+        stats: { def: 8, mag: 12, mana: 40 },
+        value: 240
+    },
+    celestial_vestments: {
+        name: 'Celestial Vestments',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.LEGENDARY,
+        icon: '👘',
+        stats: { def: 18, mag: 20, mana: 80, hp: 30 },
+        value: 1400
+    },
+
+    // Medium Armor
+    hide_armor: {
+        name: 'Hide Armor',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.COMMON,
+        icon: '🦺',
+        stats: { def: 4, agi: 2, hp: 15 },
+        value: 30
+    },
+    studded_leather: {
+        name: 'Studded Leather',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.UNCOMMON,
+        icon: '🦺',
+        stats: { def: 6, agi: 4, hp: 25 },
+        value: 80
+    },
+    ranger_armor: {
+        name: 'Ranger Armor',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.RARE,
+        icon: '🦺',
+        stats: { def: 10, agi: 8, hp: 35, crit: 5 },
+        value: 260
+    },
+
+    // Heavy Armor
+    bronze_armor: {
+        name: 'Bronze Armor',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.COMMON,
+        icon: '🛡️',
+        stats: { def: 6, hp: 20 },
+        value: 45
+    },
+    steel_armor: {
+        name: 'Steel Armor',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.UNCOMMON,
+        icon: '🛡️',
+        stats: { def: 10, hp: 35 },
+        value: 110
+    },
+    knights_armor: {
+        name: 'Knight\'s Armor',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.RARE,
+        icon: '🛡️',
+        stats: { def: 18, hp: 55, str: 3 },
+        value: 300
+    },
+    titan_plate: {
+        name: 'Titan Plate',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.EPIC,
+        icon: '🛡️',
+        stats: { def: 24, hp: 90, str: 8 },
+        value: 700
+    },
+    godsteel_armor: {
+        name: 'Godsteel Armor',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.LEGENDARY,
+        icon: '🛡️',
+        stats: { def: 30, hp: 120, str: 12, mag: 5 },
+        value: 1800
+    },
+
+    // === EXPANDED SHIELDS ===
+    buckler: {
+        name: 'Buckler',
+        type: ITEM_TYPES.SHIELD,
+        rarity: RARITY.COMMON,
+        icon: '🔰',
+        stats: { def: 3, agi: 1 },
+        value: 20
+    },
+    steel_shield: {
+        name: 'Steel Shield',
+        type: ITEM_TYPES.SHIELD,
+        rarity: RARITY.UNCOMMON,
+        icon: '🛡️',
+        stats: { def: 7, hp: 15 },
+        value: 75
+    },
+    kite_shield: {
+        name: 'Kite Shield',
+        type: ITEM_TYPES.SHIELD,
+        rarity: RARITY.RARE,
+        icon: '🛡️',
+        stats: { def: 10, hp: 30, str: 2 },
+        value: 180
+    },
+    aegis: {
+        name: 'Aegis',
+        type: ITEM_TYPES.SHIELD,
+        rarity: RARITY.LEGENDARY,
+        icon: '🛡️',
+        stats: { def: 20, hp: 60, mag: 8 },
+        value: 1100
+    },
+
+    // === EXPANDED RINGS ===
+    ring_of_defense: {
+        name: 'Ring of Defense',
+        type: ITEM_TYPES.RING,
+        rarity: RARITY.UNCOMMON,
+        icon: '💍',
+        stats: { def: 5 },
+        value: 100
+    },
+    ring_of_magic: {
+        name: 'Ring of Magic',
+        type: ITEM_TYPES.RING,
+        rarity: RARITY.UNCOMMON,
+        icon: '💍',
+        stats: { mag: 5, mana: 15 },
+        value: 105
+    },
+    ring_of_the_bear: {
+        name: 'Ring of the Bear',
+        type: ITEM_TYPES.RING,
+        rarity: RARITY.RARE,
+        icon: '💍',
+        stats: { str: 6, hp: 25 },
+        value: 180
+    },
+    ring_of_the_falcon: {
+        name: 'Ring of the Falcon',
+        type: ITEM_TYPES.RING,
+        rarity: RARITY.RARE,
+        icon: '💍',
+        stats: { agi: 8, crit: 5 },
+        value: 190
+    },
+    ring_of_regeneration: {
+        name: 'Ring of Regeneration',
+        type: ITEM_TYPES.RING,
+        rarity: RARITY.EPIC,
+        icon: '💍',
+        stats: { hp: 40, regen: 2 },
+        value: 350
+    },
+    ring_of_shadows: {
+        name: 'Ring of Shadows',
+        type: ITEM_TYPES.RING,
+        rarity: RARITY.EPIC,
+        icon: '💍',
+        stats: { agi: 10, crit: 12 },
+        value: 400
+    },
+    ring_of_the_archmage: {
+        name: 'Ring of the Archmage',
+        type: ITEM_TYPES.RING,
+        rarity: RARITY.LEGENDARY,
+        icon: '💍',
+        stats: { mag: 15, mana: 50 },
+        value: 900
+    },
+    ring_of_eternity: {
+        name: 'Ring of Eternity',
+        type: ITEM_TYPES.RING,
+        rarity: RARITY.LEGENDARY,
+        icon: '💍',
+        stats: { str: 10, agi: 10, mag: 10, def: 10 },
+        value: 1500
+    },
+
+    // === EXPANDED AMULETS ===
+    simple_amulet: {
+        name: 'Simple Amulet',
+        type: ITEM_TYPES.AMULET,
+        rarity: RARITY.COMMON,
+        icon: '📿',
+        stats: { hp: 10 },
+        value: 25
+    },
+    amulet_of_protection: {
+        name: 'Amulet of Protection',
+        type: ITEM_TYPES.AMULET,
+        rarity: RARITY.UNCOMMON,
+        icon: '📿',
+        stats: { def: 5, hp: 20 },
+        value: 90
+    },
+    amulet_of_power: {
+        name: 'Amulet of Power',
+        type: ITEM_TYPES.AMULET,
+        rarity: RARITY.RARE,
+        icon: '📿',
+        stats: { str: 8, damage: 5 },
+        value: 170
+    },
+    amulet_of_wisdom: {
+        name: 'Amulet of Wisdom',
+        type: ITEM_TYPES.AMULET,
+        rarity: RARITY.RARE,
+        icon: '📿',
+        stats: { mag: 10, mana: 30 },
+        value: 180
+    },
+    dragon_tooth_necklace: {
+        name: 'Dragon Tooth Necklace',
+        type: ITEM_TYPES.AMULET,
+        rarity: RARITY.EPIC,
+        icon: '📿',
+        stats: { str: 12, hp: 40, crit: 8 },
+        value: 480
+    },
+    amulet_of_the_void: {
+        name: 'Amulet of the Void',
+        type: ITEM_TYPES.AMULET,
+        rarity: RARITY.EPIC,
+        icon: '📿',
+        stats: { mag: 15, mana: 50, damage: 10 },
+        value: 520
+    },
+    heart_of_the_mountain: {
+        name: 'Heart of the Mountain',
+        type: ITEM_TYPES.AMULET,
+        rarity: RARITY.LEGENDARY,
+        icon: '📿',
+        stats: { def: 15, hp: 80, str: 10 },
+        value: 1100
+    },
+    star_of_azura: {
+        name: 'Star of Azura',
+        type: ITEM_TYPES.AMULET,
+        rarity: RARITY.LEGENDARY,
+        icon: '📿',
+        stats: { mag: 20, mana: 80, allstats: 5 },
+        value: 1600
+    },
+
+    // === EXPANDED POTIONS ===
+    minor_health_potion: {
+        name: 'Minor Health Potion',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.COMMON,
+        icon: '🧪',
+        effect: { heal: 15 },
+        value: 12,
+        stackable: true
+    },
+    superior_health_potion: {
+        name: 'Superior Health Potion',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.RARE,
+        icon: '🧪',
+        effect: { heal: 100 },
+        value: 120,
+        stackable: true
+    },
+    ultimate_health_potion: {
+        name: 'Ultimate Health Potion',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.EPIC,
+        icon: '🧪',
+        effect: { heal: 200 },
+        value: 250,
+        stackable: true
+    },
+    minor_mana_potion: {
+        name: 'Minor Mana Potion',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.COMMON,
+        icon: '🧪',
+        effect: { mana: 15 },
+        value: 15,
+        stackable: true
+    },
+    greater_mana_potion: {
+        name: 'Greater Mana Potion',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.UNCOMMON,
+        icon: '🧪',
+        effect: { mana: 40 },
+        value: 50,
+        stackable: true
+    },
+    supreme_mana_potion: {
+        name: 'Supreme Mana Potion',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.RARE,
+        icon: '🧪',
+        effect: { mana: 80 },
+        value: 110,
+        stackable: true
+    },
+    elixir_of_agility: {
+        name: 'Elixir of Agility',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.RARE,
+        icon: '🧪',
+        effect: { buff_agi: 5, duration: 10 },
+        value: 100,
+        stackable: true
+    },
+    elixir_of_defense: {
+        name: 'Elixir of Defense',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.RARE,
+        icon: '🧪',
+        effect: { buff_def: 5, duration: 10 },
+        value: 100,
+        stackable: true
+    },
+    elixir_of_magic: {
+        name: 'Elixir of Magic',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.RARE,
+        icon: '🧪',
+        effect: { buff_mag: 5, duration: 10 },
+        value: 100,
+        stackable: true
+    },
+    potion_of_regeneration: {
+        name: 'Potion of Regeneration',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.UNCOMMON,
+        icon: '🧪',
+        effect: { regen: 5, duration: 20 },
+        value: 80,
+        stackable: true
+    },
+    potion_of_swiftness: {
+        name: 'Potion of Swiftness',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.UNCOMMON,
+        icon: '🧪',
+        effect: { buff_agi: 8, duration: 15 },
+        value: 90,
+        stackable: true
+    },
+    potion_of_iron_skin: {
+        name: 'Potion of Iron Skin',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.RARE,
+        icon: '🧪',
+        effect: { buff_def: 10, duration: 20 },
+        value: 140,
+        stackable: true
+    },
+    potion_of_giants: {
+        name: 'Potion of Giants',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.EPIC,
+        icon: '🧪',
+        effect: { buff_str: 10, buff_hp: 50, duration: 15 },
+        value: 220,
+        stackable: true
+    },
+    potion_of_invisibility: {
+        name: 'Potion of Invisibility',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.EPIC,
+        icon: '🧪',
+        effect: { invisible: true, duration: 10 },
+        value: 280,
+        stackable: true
+    },
+    elixir_of_life: {
+        name: 'Elixir of Life',
+        type: ITEM_TYPES.POTION,
+        rarity: RARITY.LEGENDARY,
+        icon: '🧪',
+        effect: { heal: 300, buff_all: 5, duration: 30 },
+        value: 500,
+        stackable: true
+    },
+
+    // === EXPANDED SCROLLS ===
+    scroll_lightning: {
+        name: 'Scroll of Lightning',
+        type: ITEM_TYPES.SCROLL,
+        rarity: RARITY.UNCOMMON,
+        icon: '📜',
+        effect: { damage: 35, chain: 3 },
+        value: 70,
+        stackable: true
+    },
+    scroll_ice_storm: {
+        name: 'Scroll of Ice Storm',
+        type: ITEM_TYPES.SCROLL,
+        rarity: RARITY.RARE,
+        icon: '📜',
+        effect: { damage: 50, aoe: true, slow: true },
+        value: 130,
+        stackable: true
+    },
+    scroll_meteor: {
+        name: 'Scroll of Meteor',
+        type: ITEM_TYPES.SCROLL,
+        rarity: RARITY.EPIC,
+        icon: '📜',
+        effect: { damage: 80, aoe: true },
+        value: 250,
+        stackable: true
+    },
+    scroll_healing: {
+        name: 'Scroll of Healing',
+        type: ITEM_TYPES.SCROLL,
+        rarity: RARITY.UNCOMMON,
+        icon: '📜',
+        effect: { heal: 50 },
+        value: 60,
+        stackable: true
+    },
+    scroll_protection: {
+        name: 'Scroll of Protection',
+        type: ITEM_TYPES.SCROLL,
+        rarity: RARITY.RARE,
+        icon: '📜',
+        effect: { buff_def: 15, duration: 10 },
+        value: 110,
+        stackable: true
+    },
+    scroll_town_portal: {
+        name: 'Scroll of Town Portal',
+        type: ITEM_TYPES.SCROLL,
+        rarity: RARITY.RARE,
+        icon: '📜',
+        effect: { teleport_town: true },
+        value: 100,
+        stackable: true
+    },
+    scroll_summon: {
+        name: 'Scroll of Summoning',
+        type: ITEM_TYPES.SCROLL,
+        rarity: RARITY.EPIC,
+        icon: '📜',
+        effect: { summon: true, duration: 20 },
+        value: 200,
+        stackable: true
+    },
+    scroll_resurrection: {
+        name: 'Scroll of Resurrection',
+        type: ITEM_TYPES.SCROLL,
+        rarity: RARITY.LEGENDARY,
+        icon: '📜',
+        effect: { revive: true },
+        value: 800,
+        stackable: true
+    },
+
+    // === CRAFTING MATERIALS ===
+    iron_ore: {
+        name: 'Iron Ore',
+        type: 'material',
+        rarity: RARITY.COMMON,
+        icon: '⛏️',
+        value: 5,
+        stackable: true
+    },
+    steel_ingot: {
+        name: 'Steel Ingot',
+        type: 'material',
+        rarity: RARITY.UNCOMMON,
+        icon: '⚙️',
+        value: 20,
+        stackable: true
+    },
+    mithril_ore: {
+        name: 'Mithril Ore',
+        type: 'material',
+        rarity: RARITY.RARE,
+        icon: '💎',
+        value: 80,
+        stackable: true
+    },
+    dragon_scale: {
+        name: 'Dragon Scale',
+        type: 'material',
+        rarity: RARITY.EPIC,
+        icon: '🐉',
+        value: 200,
+        stackable: true
+    },
+    leather: {
+        name: 'Leather',
+        type: 'material',
+        rarity: RARITY.COMMON,
+        icon: '🦴',
+        value: 8,
+        stackable: true
+    },
+    hardened_leather: {
+        name: 'Hardened Leather',
+        type: 'material',
+        rarity: RARITY.UNCOMMON,
+        icon: '🦴',
+        value: 25,
+        stackable: true
+    },
+    thread: {
+        name: 'Thread',
+        type: 'material',
+        rarity: RARITY.COMMON,
+        icon: '🧵',
+        value: 3,
+        stackable: true
+    },
+    silk: {
+        name: 'Silk',
+        type: 'material',
+        rarity: RARITY.UNCOMMON,
+        icon: '🧵',
+        value: 15,
+        stackable: true
+    },
+    wood: {
+        name: 'Wood',
+        type: 'material',
+        rarity: RARITY.COMMON,
+        icon: '🪵',
+        value: 4,
+        stackable: true
+    },
+    ironwood: {
+        name: 'Ironwood',
+        type: ITEM_TYPES.COMMON,
+        rarity: RARITY.UNCOMMON,
+        icon: '🪵',
+        value: 18,
+        stackable: true
+    },
+    crystal_shard: {
+        name: 'Crystal Shard',
+        type: 'material',
+        rarity: RARITY.UNCOMMON,
+        icon: '💎',
+        value: 30,
+        stackable: true
+    },
+    magic_essence: {
+        name: 'Magic Essence',
+        type: 'material',
+        rarity: RARITY.RARE,
+        icon: '✨',
+        value: 50,
+        stackable: true
+    },
+    soul_gem: {
+        name: 'Soul Gem',
+        type: 'material',
+        rarity: RARITY.EPIC,
+        icon: '💎',
+        value: 150,
+        stackable: true
+    },
+    phoenix_feather: {
+        name: 'Phoenix Feather',
+        type: 'material',
+        rarity: RARITY.LEGENDARY,
+        icon: '🪶',
+        value: 400,
+        stackable: true
+    },
+
+    // === FOOD ITEMS ===
+    bread: {
+        name: 'Bread',
+        type: 'food',
+        rarity: RARITY.COMMON,
+        icon: '🍞',
+        effect: { heal: 10 },
+        value: 5,
+        stackable: true
+    },
+    cheese: {
+        name: 'Cheese',
+        type: 'food',
+        rarity: RARITY.COMMON,
+        icon: '🧀',
+        effect: { heal: 12 },
+        value: 6,
+        stackable: true
+    },
+    apple: {
+        name: 'Apple',
+        type: 'food',
+        rarity: RARITY.COMMON,
+        icon: '🍎',
+        effect: { heal: 8 },
+        value: 3,
+        stackable: true
+    },
+    meat: {
+        name: 'Cooked Meat',
+        type: 'food',
+        rarity: RARITY.COMMON,
+        icon: '🍖',
+        effect: { heal: 20, buff_str: 1, duration: 5 },
+        value: 12,
+        stackable: true
+    },
+    fish: {
+        name: 'Cooked Fish',
+        type: 'food',
+        rarity: RARITY.COMMON,
+        icon: '🐟',
+        effect: { heal: 18, buff_agi: 1, duration: 5 },
+        value: 10,
+        stackable: true
+    },
+    mushroom_stew: {
+        name: 'Mushroom Stew',
+        type: 'food',
+        rarity: RARITY.UNCOMMON,
+        icon: '🍄',
+        effect: { heal: 25, mana: 15 },
+        value: 20,
+        stackable: true
+    },
+
+    // === UNIQUE LEGENDARY ITEMS ===
+    excalibur: {
+        name: 'Excalibur',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.LEGENDARY,
+        icon: '⚔️',
+        stats: { str: 25, damage: 40, crit: 15, allstats: 5 },
+        value: 2000
+    },
+    shadowmourne: {
+        name: 'Shadowmourne',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.LEGENDARY,
+        icon: '⚔️',
+        stats: { str: 22, agi: 10, damage: 38, lifesteal: 20 },
+        value: 1800
+    },
+    frostmourne: {
+        name: 'Frostmourne',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.LEGENDARY,
+        icon: '⚔️',
+        stats: { str: 20, mag: 15, damage: 36, mana: 40 },
+        value: 1700
+    },
+    infinity_bow: {
+        name: 'Infinity Bow',
+        type: ITEM_TYPES.WEAPON,
+        rarity: RARITY.LEGENDARY,
+        icon: '🏹',
+        stats: { agi: 25, damage: 35, crit: 25 },
+        value: 1900
+    },
+    demon_armor: {
+        name: 'Demon Plate',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.LEGENDARY,
+        icon: '🛡️',
+        stats: { def: 28, hp: 100, str: 15, lifesteal: 10 },
+        value: 2200
+    },
+    angels_grace: {
+        name: 'Angel\'s Grace',
+        type: ITEM_TYPES.ARMOR,
+        rarity: RARITY.LEGENDARY,
+        icon: '👘',
+        stats: { def: 20, mag: 25, mana: 100, regen: 5 },
+        value: 2100
     }
 };
 
