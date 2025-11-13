@@ -4804,47 +4804,62 @@ class Game {
     }
 
     updateUI() {
+        if (!this.player) return;
+
+        // Helper function to safely set text content
+        const safeSetText = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+
+        const safeSetStyle = (id, property, value) => {
+            const el = document.getElementById(id);
+            if (el && el.style) el.style[property] = value;
+        };
+
         // Player stats
-        document.getElementById('player-icon').textContent = this.player.icon;
-        document.getElementById('player-level').textContent = this.player.level;
-        document.getElementById('player-class').textContent = this.player.className.charAt(0).toUpperCase() + this.player.className.slice(1);
+        safeSetText('player-icon', this.player.icon);
+        safeSetText('player-level', this.player.level);
+        safeSetText('player-class', this.player.className.charAt(0).toUpperCase() + this.player.className.slice(1));
 
         // HP/Mana/XP bars
         const hpPercent = (this.player.hp / this.player.maxHp) * 100;
-        document.getElementById('hp-bar').style.width = hpPercent + '%';
-        document.getElementById('hp-text').textContent = `${Math.max(0, Math.floor(this.player.hp))}/${this.player.maxHp}`;
+        safeSetStyle('hp-bar', 'width', hpPercent + '%');
+        safeSetText('hp-text', `${Math.max(0, Math.floor(this.player.hp))}/${this.player.maxHp}`);
 
         const manaPercent = (this.player.mana / this.player.maxMana) * 100;
-        document.getElementById('mana-bar').style.width = manaPercent + '%';
-        document.getElementById('mana-text').textContent = `${Math.floor(this.player.mana)}/${this.player.maxMana}`;
+        safeSetStyle('mana-bar', 'width', manaPercent + '%');
+        safeSetText('mana-text', `${Math.floor(this.player.mana)}/${this.player.maxMana}`);
 
         const xpPercent = (this.player.xp / this.player.xpToLevel) * 100;
-        document.getElementById('xp-bar').style.width = xpPercent + '%';
-        document.getElementById('xp-text').textContent = `${Math.floor(this.player.xp)}/${this.player.xpToLevel}`;
+        safeSetStyle('xp-bar', 'width', xpPercent + '%');
+        safeSetText('xp-text', `${Math.floor(this.player.xp)}/${this.player.xpToLevel}`);
 
         // Stats
         const stats = this.player.getTotalStats();
-        document.getElementById('stat-str').textContent = Math.floor(stats.strength);
-        document.getElementById('stat-def').textContent = Math.floor(stats.defense);
-        document.getElementById('stat-agi').textContent = Math.floor(stats.agility);
-        document.getElementById('stat-mag').textContent = Math.floor(stats.magic);
-        document.getElementById('stat-crit').textContent = Math.floor(stats.critChance) + '%';
-        document.getElementById('stat-vision').textContent = stats.vision;
+        safeSetText('stat-str', Math.floor(stats.strength));
+        safeSetText('stat-def', Math.floor(stats.defense));
+        safeSetText('stat-agi', Math.floor(stats.agility));
+        safeSetText('stat-mag', Math.floor(stats.magic));
+        safeSetText('stat-crit', Math.floor(stats.critChance) + '%');
+        safeSetText('stat-vision', stats.vision);
 
         // Equipment
         for (const slot in this.player.equipment) {
             const item = this.player.equipment[slot];
             const slotEl = document.querySelector(`[data-slot="${slot}"] .slot-item`);
-            slotEl.textContent = item ? item.name : 'None';
+            if (slotEl) {
+                slotEl.textContent = item ? item.name : 'None';
+            }
         }
 
         // Inventory
         this.updateInventoryDisplay();
 
         // Game info
-        document.getElementById('floor-number').textContent = this.floor;
-        document.getElementById('gold-amount').textContent = this.player.gold;
-        document.getElementById('score-amount').textContent = this.player.score;
+        safeSetText('floor-number', this.floor || 1);
+        safeSetText('gold-amount', this.player.gold);
+        safeSetText('score-amount', this.player.score);
 
         // Message log
         this.updateMessageLog();
@@ -4854,6 +4869,8 @@ class Game {
     }
 
     updateInventoryDisplay() {
+        if (!this.player) return;
+
         const slots = document.querySelectorAll('.inventory-slot');
 
         for (let i = 0; i < slots.length; i++) {
@@ -4879,8 +4896,10 @@ class Game {
             }
         }
 
-        document.getElementById('inventory-count').textContent =
-            `(${this.player.inventory.length}/${this.player.maxInventorySize})`;
+        const invCount = document.getElementById('inventory-count');
+        if (invCount) {
+            invCount.textContent = `(${this.player.inventory.length}/${this.player.maxInventorySize})`;
+        }
     }
 
     showItemDetails(item) {
