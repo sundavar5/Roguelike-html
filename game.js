@@ -2940,9 +2940,22 @@ class Player {
 
         this.x = 0;
         this.y = 0;
+        this.renderX = 0; // Smooth rendering position
+        this.renderY = 0;
+        this.moveSpeed = 0.15; // Tiles per frame (faster than enemies)
+        this.moving = false;
+        this.targetX = 0;
+        this.targetY = 0;
+
         this.gold = 0;
         this.score = 0;
         this.kills = 0;
+
+        // Real-time combat properties
+        this.attackCooldown = 0;
+        this.attackSpeed = 30; // Frames between attacks
+        this.dodging = false;
+        this.dodgeCooldown = 0;
 
         // Initialize stats based on class (do this AFTER equipment is defined)
         console.log('Calling initializeClass...');
@@ -3370,20 +3383,34 @@ class Enemy {
     constructor(template, level) {
         Object.assign(this, JSON.parse(JSON.stringify(template)));
 
-        // Scale with level
-        const scaling = 1 + (level - this.level) * 0.3;
+        // Better scaling system - exponential growth
+        const levelDiff = level - this.level;
+        const scaling = Math.pow(1.15, levelDiff); // 15% per level difference
+
         this.level = level;
         this.hp *= scaling;
-        this.maxHp = this.hp;
-        this.damage *= scaling;
-        this.defense *= scaling;
+        this.maxHp = Math.floor(this.hp);
+        this.hp = this.maxHp;
+        this.damage = Math.floor(this.damage * scaling);
+        this.defense = Math.floor(this.defense * scaling);
         this.xp = Math.floor(this.xp * scaling);
         this.gold = Math.floor(this.gold * scaling);
 
-        this.hp = Math.floor(this.hp);
-        this.maxHp = this.hp;
-        this.damage = Math.floor(this.damage);
-        this.defense = Math.floor(this.defense);
+        // Smooth movement properties
+        this.renderX = this.x;
+        this.renderY = this.y;
+        this.moveSpeed = 0.05; // Tiles per frame
+        this.moving = false;
+
+        // AI properties
+        this.sightRange = 8;
+        this.attackRange = this.ranged ? 5 : 1.5;
+        this.state = 'idle'; // idle, patrol, chase, attack
+        this.alertLevel = 0; // 0-100, increases when player nearby
+        this.lastSeenPlayerX = null;
+        this.lastSeenPlayerY = null;
+        this.patrolTarget = null;
+        this.attackCooldown = 0;
 
         this.buffs = [];
         this.poison = 0;
@@ -3411,6 +3438,187 @@ class Enemy {
             return this.poison;
         }
         return 0;
+    }
+
+    // AI update - called every frame
+    updateAI(player, world) {
+        // Smooth movement interpolation
+        if (this.moving) {
+            const dx = this.x - this.renderX;
+            const dy = this.y - this.renderY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 0.05) {
+                this.renderX = this.x;
+                this.renderY = this.y;
+                this.moving = false;
+            } else {
+                this.renderX += dx * this.moveSpeed;
+                this.renderY += dy * this.moveSpeed;
+            }
+        }
+
+        // Update attack cooldown
+        if (this.attackCooldown > 0) this.attackCooldown--;
+
+        // Check line of sight to player
+        const distToPlayer = distance(this.x, this.y, player.x, player.y);
+        const hasLOS = this.checkLineOfSight(player, world);
+
+        // Update alert level
+        if (hasLOS && distToPlayer < this.sightRange) {
+            this.alertLevel = Math.min(100, this.alertLevel + 5);
+            this.lastSeenPlayerX = player.x;
+            this.lastSeenPlayerY = player.y;
+        } else {
+            this.alertLevel = Math.max(0, this.alertLevel - 1);
+        }
+
+        // State machine
+        if (this.alertLevel > 30) {
+            if (distToPlayer <= this.attackRange) {
+                this.state = 'attack';
+            } else {
+                this.state = 'chase';
+            }
+        } else if (this.lastSeenPlayerX !== null && this.alertLevel > 0) {
+            this.state = 'patrol'; // Investigate last known position
+        } else {
+            this.state = 'idle';
+        }
+
+        // Execute behavior
+        if (!this.moving) {
+            switch (this.state) {
+                case 'chase':
+                    this.moveTowards(player.x, player.y, world);
+                    break;
+                case 'patrol':
+                    if (Math.abs(this.x - this.lastSeenPlayerX) < 0.5 &&
+                        Math.abs(this.y - this.lastSeenPlayerY) < 0.5) {
+                        this.lastSeenPlayerX = null;
+                        this.lastSeenPlayerY = null;
+                    } else {
+                        this.moveTowards(this.lastSeenPlayerX, this.lastSeenPlayerY, world);
+                    }
+                    break;
+                case 'idle':
+                    // Random movement occasionally
+                    if (random(1, 100) > 98) {
+                        const dx = random(-1, 1);
+                        const dy = random(-1, 1);
+                        const newX = this.x + dx;
+                        const newY = this.y + dy;
+                        if (world.isWalkable(newX, newY)) {
+                            this.x = newX;
+                            this.y = newY;
+                            this.moving = true;
+                        }
+                    }
+                    break;
+            }
+        }
+    }
+
+    checkLineOfSight(player, world) {
+        // Simple raycasting for line of sight
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const checkX = Math.round(this.x + dx * t);
+            const checkY = Math.round(this.y + dy * t);
+
+            const tile = world.tiles[checkY]?.[checkX];
+            if (tile === TILE_TYPES.TREE || tile === TILE_TYPES.MOUNTAIN) {
+                return false; // Blocked by terrain
+            }
+        }
+        return true;
+    }
+
+    moveTowards(targetX, targetY, world) {
+        // Simple pathfinding - move one step towards target
+        const dx = targetX - this.x;
+        const dy = targetY - this.y;
+
+        // Normalize direction
+        let moveX = 0;
+        let moveY = 0;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            moveX = dx > 0 ? 1 : -1;
+        } else {
+            moveY = dy > 0 ? 1 : -1;
+        }
+
+        const newX = this.x + moveX;
+        const newY = this.y + moveY;
+
+        // Try moving diagonally if straight path is blocked
+        if (!world.isWalkable(newX, newY)) {
+            moveX = dx > 0 ? 1 : -1;
+            moveY = dy > 0 ? 1 : -1;
+            const diagX = this.x + moveX;
+            const diagY = this.y + moveY;
+            if (world.isWalkable(diagX, diagY)) {
+                this.x = diagX;
+                this.y = diagY;
+                this.moving = true;
+            }
+        } else {
+            this.x = newX;
+            this.y = newY;
+            this.moving = true;
+        }
+    }
+}
+
+// ============================================================================
+// PROJECTILE SYSTEM
+// ============================================================================
+
+class Projectile {
+    constructor(x, y, targetX, targetY, damage, speed, icon, owner) {
+        this.x = x;
+        this.y = y;
+        this.damage = damage;
+        this.speed = speed;
+        this.icon = icon;
+        this.owner = owner; // 'player' or 'enemy'
+        this.active = true;
+
+        // Calculate velocity
+        const dx = targetX - x;
+        const dy = targetY - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        this.vx = (dx / dist) * speed;
+        this.vy = (dy / dist) * speed;
+    }
+
+    update(world) {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Check if hit wall
+        const tileX = Math.floor(this.x);
+        const tileY = Math.floor(this.y);
+        if (!world.isWalkable(tileX, tileY)) {
+            this.active = false;
+        }
+
+        // Check if out of bounds
+        if (this.x < 0 || this.x >= world.width || this.y < 0 || this.y >= world.height) {
+            this.active = false;
+        }
+    }
+
+    checkHit(target, range = 0.5) {
+        const dx = this.x - target.x;
+        const dy = this.y - target.y;
+        return Math.sqrt(dx * dx + dy * dy) < range;
     }
 }
 
@@ -3875,6 +4083,8 @@ class Game {
         this.floatingTexts = [];
         this.shakeAmount = 0;
         this.lastRenderTime = 0;
+        this.projectiles = [];
+        this.keys = {}; // Track pressed keys for smooth movement
 
         console.log('Getting canvas element...');
         this.canvas = document.getElementById('dungeon-canvas');
@@ -3908,6 +4118,84 @@ class Game {
     }
 
     updateAnimations(deltaTime) {
+        if (!this.player || !this.world) return;
+
+        // Update player smooth movement
+        if (this.player.moving) {
+            const dx = this.player.targetX - this.player.renderX;
+            const dy = this.player.targetY - this.player.renderY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 0.05) {
+                this.player.renderX = this.player.targetX;
+                this.player.renderY = this.player.targetY;
+                this.player.x = this.player.targetX;
+                this.player.y = this.player.targetY;
+                this.player.moving = false;
+            } else {
+                this.player.renderX += dx * this.player.moveSpeed;
+                this.player.renderY += dy * this.player.moveSpeed;
+            }
+        }
+
+        // Update player cooldowns
+        if (this.player.attackCooldown > 0) this.player.attackCooldown--;
+        if (this.player.dodgeCooldown > 0) this.player.dodgeCooldown--;
+
+        // Update enemy AI
+        for (const enemy of this.world.enemies) {
+            if (enemy.hp > 0) {
+                enemy.updateAI(this.player, this.world);
+
+                // Real-time combat - enemy attacks when in range
+                if (enemy.state === 'attack' && enemy.attackCooldown === 0) {
+                    const dist = distance(enemy.x, enemy.y, this.player.x, this.player.y);
+                    if (dist <= enemy.attackRange) {
+                        this.enemyAttackPlayer(enemy);
+                        enemy.attackCooldown = 60; // 1 second cooldown
+                    }
+                }
+            }
+        }
+
+        // Update projectiles
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            const proj = this.projectiles[i];
+            proj.update(this.world);
+
+            // Check hit on enemies (player projectiles)
+            if (proj.owner === 'player' && proj.active) {
+                for (const enemy of this.world.enemies) {
+                    if (enemy.hp > 0 && proj.checkHit(enemy)) {
+                        const damage = proj.damage;
+                        enemy.takeDamage(damage);
+                        this.showFloatingText(enemy.renderX || enemy.x, enemy.renderY || enemy.y, `-${damage}`, '#ff4444');
+                        if (enemy.hp <= 0) {
+                            this.onEnemyKilled(enemy);
+                        }
+                        proj.active = false;
+                        break;
+                    }
+                }
+            }
+
+            // Check hit on player (enemy projectiles)
+            if (proj.owner === 'enemy' && proj.active) {
+                if (proj.checkHit(this.player) && !this.player.dodging) {
+                    const damage = proj.damage;
+                    this.player.takeDamage(damage);
+                    this.showFloatingText(this.player.renderX, this.player.renderY, `-${damage}`, '#ff4444');
+                    this.screenShake(5);
+                    proj.active = false;
+                }
+            }
+
+            // Remove inactive projectiles
+            if (!proj.active) {
+                this.projectiles.splice(i, 1);
+            }
+        }
+
         // Update floating damage numbers
         for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
             const text = this.floatingTexts[i];
@@ -3925,6 +4213,19 @@ class Game {
             this.shakeAmount -= deltaTime * 0.01;
             if (this.shakeAmount < 0) this.shakeAmount = 0;
         }
+
+        // Check player death
+        if (this.player.hp <= 0) {
+            this.gameOver();
+        }
+    }
+
+    enemyAttackPlayer(enemy) {
+        const damage = enemy.calculateDamage();
+        const actualDamage = this.player.takeDamage(damage);
+        this.showFloatingText(this.player.renderX, this.player.renderY, `-${actualDamage}`, '#ff4444');
+        this.screenShake(5);
+        this.addMessage(`${enemy.name} hits you for ${actualDamage} damage!`, 'combat');
     }
 
     showFloatingText(x, y, text, color = '#ff4444', isCrit = false) {
@@ -5057,7 +5358,8 @@ class Game {
                 switch(tile) {
                     case TILE_TYPES.GRASS:
                         color = '#4a7c2f';
-                        if (random(1, 10) > 7) symbol = '🌿';
+                        // Use tile position as seed for consistent decoration
+                        if ((worldX + worldY * 13) % 10 > 7) symbol = '🌿';
                         break;
                     case TILE_TYPES.WATER:
                         color = '#2b5f9e';
