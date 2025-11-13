@@ -4063,6 +4063,13 @@ class World {
     getItemAt(x, y) {
         return this.items.find(i => i.x === x && i.y === y);
     }
+
+    removeItem(item) {
+        const index = this.items.indexOf(item);
+        if (index > -1) {
+            this.items.splice(index, 1);
+        }
+    }
 }
 
 // ============================================================================
@@ -4119,6 +4126,37 @@ class Game {
 
     updateAnimations(deltaTime) {
         if (!this.player || !this.world) return;
+
+        // Process continuous movement from held keys
+        if (!this.player.moving) {
+            let moveX = 0;
+            let moveY = 0;
+
+            if (this.keys['w'] || this.keys['arrowup']) moveY = -1;
+            if (this.keys['s'] || this.keys['arrowdown']) moveY = 1;
+            if (this.keys['a'] || this.keys['arrowleft']) moveX = -1;
+            if (this.keys['d'] || this.keys['arrowright']) moveX = 1;
+
+            if (moveX !== 0 || moveY !== 0) {
+                const newX = this.player.x + moveX;
+                const newY = this.player.y + moveY;
+
+                // Check for enemy collision
+                const enemy = this.world.getEnemyAt(newX, newY);
+                if (enemy && enemy.hp > 0) {
+                    // Melee attack
+                    this.performMeleeAttack(enemy);
+                } else if (this.world.isWalkable(newX, newY)) {
+                    // Move player
+                    this.player.targetX = newX;
+                    this.player.targetY = newY;
+                    this.player.moving = true;
+
+                    // Check for town/dungeon/items
+                    this.checkTileInteraction(newX, newY);
+                }
+            }
+        }
 
         // Update player smooth movement
         if (this.player.moving) {
@@ -4228,6 +4266,94 @@ class Game {
         this.addMessage(`${enemy.name} hits you for ${actualDamage} damage!`, 'combat');
     }
 
+    performMeleeAttack(enemy) {
+        if (this.player.attackCooldown > 0) return;
+
+        const damage = this.player.calculateDamage();
+        const actualDamage = enemy.takeDamage(damage);
+        this.showFloatingText(enemy.renderX || enemy.x, enemy.renderY || enemy.y, `-${actualDamage}`, '#ff4444');
+        this.screenShake(3);
+        this.addMessage(`You hit ${enemy.name} for ${actualDamage} damage!`, 'success');
+
+        this.player.attackCooldown = this.player.attackSpeed;
+
+        if (enemy.hp <= 0) {
+            this.onEnemyKilled(enemy);
+        }
+    }
+
+    handleMouseAttack(event) {
+        if (this.player.attackCooldown > 0) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+
+        // Convert screen coords to world coords
+        const viewWidth = Math.min(25, this.world.width);
+        const viewHeight = Math.min(19, this.world.height);
+        const cameraX = clamp(this.player.x - Math.floor(viewWidth / 2), 0, this.world.width - viewWidth);
+        const cameraY = clamp(this.player.y - Math.floor(viewHeight / 2), 0, this.world.height - viewHeight);
+
+        const tileX = Math.floor(clickX / TILE_SIZE) + cameraX;
+        const tileY = Math.floor(clickY / TILE_SIZE) + cameraY;
+
+        // Check if player has ranged weapon (for now, mage class shoots magic)
+        const isRanged = this.player.className === 'mage' || this.player.className === 'rogue';
+
+        if (isRanged) {
+            // Shoot projectile
+            const damage = this.player.calculateDamage();
+            const projectile = new Projectile(
+                this.player.renderX,
+                this.player.renderY,
+                tileX + 0.5,
+                tileY + 0.5,
+                damage,
+                0.3,
+                this.player.className === 'mage' ? '🔥' : '🏹',
+                'player'
+            );
+            this.projectiles.push(projectile);
+            this.addMessage(`You fire at (${tileX}, ${tileY})!`, 'combat');
+        } else {
+            // Melee attack - check if enemy is adjacent
+            const enemy = this.world.getEnemyAt(tileX, tileY);
+            if (enemy && enemy.hp > 0) {
+                const dist = distance(this.player.x, this.player.y, enemy.x, enemy.y);
+                if (dist <= 1.5) {
+                    this.performMeleeAttack(enemy);
+                }
+            }
+        }
+
+        this.player.attackCooldown = this.player.attackSpeed;
+    }
+
+    checkTileInteraction(newX, newY) {
+        const town = this.world.getTownAt(newX, newY);
+        if (town) {
+            this.enterTown(town);
+            return;
+        }
+
+        const tile = this.world.tiles[newY][newX];
+        if (tile === TILE_TYPES.DUNGEON_ENTRANCE) {
+            this.enterDungeon(newX, newY);
+            return;
+        }
+
+        // Check for items
+        const item = this.world.getItemAt(newX, newY);
+        if (item) {
+            if (this.player.addItem(item)) {
+                this.world.removeItem(item);
+                this.addMessage(`Picked up ${item.name}!`, 'success');
+                this.updateUI();
+            }
+        }
+    }
+
     showFloatingText(x, y, text, color = '#ff4444', isCrit = false) {
         this.floatingTexts.push({
             x, y,
@@ -4281,14 +4407,28 @@ class Game {
             console.error('Start button not found!');
         }
 
-        // Keyboard controls
+        // Keyboard controls - real-time movement
         document.addEventListener('keydown', (e) => {
-            if (this.state === 'playing' && !this.inCombat) {
+            if (this.state === 'playing') {
+                this.keys[e.key.toLowerCase()] = true;
                 this.handleKeyPress(e);
             }
         });
 
-        // Combat buttons
+        document.addEventListener('keyup', (e) => {
+            if (this.state === 'playing') {
+                this.keys[e.key.toLowerCase()] = false;
+            }
+        });
+
+        // Mouse controls for attacking
+        this.canvas.addEventListener('click', (e) => {
+            if (this.state === 'playing') {
+                this.handleMouseAttack(e);
+            }
+        });
+
+        // Combat buttons (keep for now, will remove later)
         document.querySelectorAll('.combat-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const action = btn.dataset.action;
@@ -4417,8 +4557,13 @@ class Game {
         const startPos = this.world.getStartPosition();
         this.player.x = startPos.x;
         this.player.y = startPos.y;
+        this.player.renderX = startPos.x;
+        this.player.renderY = startPos.y;
+        this.player.targetX = startPos.x;
+        this.player.targetY = startPos.y;
 
         this.addMessage('You awaken in the Starter Village...', 'success');
+        this.addMessage('Click to attack, WASD to move. Mage/Rogue shoot projectiles!', 'info');
         this.updateCurrentBiome();
     }
 
@@ -4441,44 +4586,53 @@ class Game {
     }
 
     handleKeyPress(e) {
-        let dx = 0, dy = 0;
-
+        // Only handle special keys - movement is now in updateAnimations
         switch(e.key.toLowerCase()) {
-            case 'arrowup':
-            case 'w':
-                dy = -1;
-                break;
-            case 'arrowdown':
-            case 's':
-                dy = 1;
-                break;
-            case 'arrowleft':
-            case 'a':
-                dx = -1;
-                break;
-            case 'arrowright':
-            case 'd':
-                dx = 1;
-                break;
             case 'r':
                 this.rest();
+                e.preventDefault();
                 return;
             case 't':
                 this.openTalentTreeModal();
+                e.preventDefault();
                 return;
-            case 'e':
-                this.openEnchantmentModal();
+            case 'i':
+                this.showInventory();
+                e.preventDefault();
+                return;
+            case 'k':
+                this.openSkillsModal();
+                e.preventDefault();
+                return;
+            case 'm':
+                // TODO: Show map
+                e.preventDefault();
                 return;
             case ' ':
-                this.search();
-                return;
-            default:
+                // Space bar - melee attack nearest enemy
+                e.preventDefault();
+                this.attackNearestEnemy();
                 return;
         }
+    }
 
-        if (dx !== 0 || dy !== 0) {
-            e.preventDefault();
-            this.movePlayer(dx, dy);
+    attackNearestEnemy() {
+        if (this.player.attackCooldown > 0) return;
+
+        let nearestEnemy = null;
+        let nearestDist = Infinity;
+
+        for (const enemy of this.world.enemies) {
+            if (enemy.hp <= 0) continue;
+            const dist = distance(this.player.x, this.player.y, enemy.x, enemy.y);
+            if (dist < nearestDist && dist <= 1.5) {
+                nearestDist = dist;
+                nearestEnemy = enemy;
+            }
+        }
+
+        if (nearestEnemy) {
+            this.performMeleeAttack(nearestEnemy);
         }
     }
 
@@ -5450,23 +5604,58 @@ class Game {
             }
         }
 
-        // Render enemies
+        // Render projectiles
+        for (const proj of this.projectiles) {
+            const dist = distance(proj.x, proj.y, this.player.x, this.player.y);
+            if (dist <= vision) {
+                const screenX = (proj.x - cameraX) * TILE_SIZE;
+                const screenY = (proj.y - cameraY) * TILE_SIZE;
+
+                this.ctx.font = `${TILE_SIZE - 6}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(proj.icon, screenX + TILE_SIZE / 2, screenY + TILE_SIZE / 2);
+            }
+        }
+
+        // Render enemies (use smooth renderX/renderY)
         for (const enemy of this.world.enemies) {
             if (enemy.hp <= 0) continue;
 
             const dist = distance(enemy.x, enemy.y, this.player.x, this.player.y);
             if (dist <= vision) {
-                const screenX = (enemy.x - cameraX) * TILE_SIZE;
-                const screenY = (enemy.y - cameraY) * TILE_SIZE;
+                // Use smooth render position
+                const renderX = enemy.renderX !== undefined ? enemy.renderX : enemy.x;
+                const renderY = enemy.renderY !== undefined ? enemy.renderY : enemy.y;
+                const screenX = (renderX - cameraX) * TILE_SIZE;
+                const screenY = (renderY - cameraY) * TILE_SIZE;
 
-                // Enemy background
-                this.ctx.fillStyle = 'rgba(139, 0, 0, 0.5)';
+                // Enemy background - add state indicator
+                if (enemy.state === 'chase') {
+                    this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'; // Red when chasing
+                } else if (enemy.state === 'attack') {
+                    this.ctx.fillStyle = 'rgba(255, 100, 0, 0.7)'; // Orange when attacking
+                } else if (enemy.alertLevel > 0) {
+                    this.ctx.fillStyle = 'rgba(255, 255, 0, 0.3)'; // Yellow when suspicious
+                } else {
+                    this.ctx.fillStyle = 'rgba(139, 0, 0, 0.3)'; // Dark red when idle
+                }
                 this.ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
 
+                // Draw enemy icon
                 this.ctx.font = `${TILE_SIZE - 4}px Arial`;
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
                 this.ctx.fillText(enemy.icon, screenX + TILE_SIZE / 2, screenY + TILE_SIZE / 2);
+
+                // Draw HP bar for enemies in combat
+                if (enemy.alertLevel > 50) {
+                    const hpPercent = enemy.hp / enemy.maxHp;
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    this.ctx.fillRect(screenX + 2, screenY - 4, TILE_SIZE - 4, 3);
+                    this.ctx.fillStyle = hpPercent > 0.5 ? '#00ff00' : hpPercent > 0.25 ? '#ffff00' : '#ff0000';
+                    this.ctx.fillRect(screenX + 2, screenY - 4, (TILE_SIZE - 4) * hpPercent, 3);
+                }
             }
         }
 
@@ -5479,9 +5668,9 @@ class Game {
             this.ctx.translate(shakeX, shakeY);
         }
 
-        // Render player
-        const playerScreenX = (this.player.x - cameraX) * TILE_SIZE;
-        const playerScreenY = (this.player.y - cameraY) * TILE_SIZE;
+        // Render player (use smooth renderX/renderY)
+        const playerScreenX = (this.player.renderX - cameraX) * TILE_SIZE;
+        const playerScreenY = (this.player.renderY - cameraY) * TILE_SIZE;
 
         this.ctx.fillStyle = 'rgba(212, 175, 55, 0.3)';
         this.ctx.fillRect(playerScreenX, playerScreenY, TILE_SIZE, TILE_SIZE);
@@ -5490,6 +5679,22 @@ class Game {
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText(this.player.icon, playerScreenX + TILE_SIZE / 2, playerScreenY + TILE_SIZE / 2);
+
+        // Draw player attack cooldown indicator
+        if (this.player.attackCooldown > 0) {
+            const cooldownPercent = 1 - (this.player.attackCooldown / this.player.attackSpeed);
+            this.ctx.fillStyle = 'rgba(0, 200, 255, 0.5)';
+            this.ctx.beginPath();
+            this.ctx.arc(
+                playerScreenX + TILE_SIZE / 2,
+                playerScreenY + TILE_SIZE / 2,
+                TILE_SIZE / 2 - 2,
+                -Math.PI / 2,
+                (-Math.PI / 2) + (Math.PI * 2 * cooldownPercent)
+            );
+            this.ctx.lineTo(playerScreenX + TILE_SIZE / 2, playerScreenY + TILE_SIZE / 2);
+            this.ctx.fill();
+        }
 
         // Restore from shake
         if (this.shakeAmount > 0) {
